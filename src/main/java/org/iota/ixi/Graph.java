@@ -58,7 +58,11 @@ public class Graph extends DefaultIxiModule {
 
     }
 
-
+    // returns the hash of the data bundle fragment tail
+    public String getData(String vertex) {
+        Transaction t = findTransactionByHash(vertex);
+        return t.extraDataDigest;
+    }
 
 
     @Override
