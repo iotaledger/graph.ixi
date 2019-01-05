@@ -11,10 +11,15 @@ import org.iota.ict.network.event.GossipSubmitEvent;
 import org.iota.ict.utils.Trytes;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Graph extends DefaultIxiModule {
+
+    private Map<String, Transaction> transactionsByHash = new HashMap<>();
+    private Map<String, List<String>> verticesByDataHash = new HashMap<>();
+    private Map<String, List<String>> referencingVertices = new HashMap<>();
 
     public Graph(IctProxy ict) {
         super(ict);
@@ -23,15 +28,19 @@ public class Graph extends DefaultIxiModule {
     @Override
     public void run() {
 
-        String hash = createVertex("DATAHASH9999999999999999999999999999999999999999999999999999999999999999999999999", new String[] { "FIRST9999999999999999999999999999999999999999999999999999999999999999999999999999", "SECOND999999999999999999999999999999999999999999999999999999999999999999999999999" } );
+        //List<TransactionBuilder> transactions = createVertex("DATAHASH9999999999999999999999999999999999999999999999999999999999999999999999999", new String[] { "FIRST9999999999999999999999999999999999999999999999999999999999999999999999999999", "SECOND999999999999999999999999999999999999999999999999999999999999999999999999999" } );
 
-        List<String> e = getEdges(hash);
 
-        System.out.println("VERTEX HASH: " + hash);
-        System.out.println("DATA: "+ getData(hash));
-        System.out.println("EDGE1: " + e.get(0));
-        System.out.println("EDGE2: " + e.get(1));
+    }
 
+    // returns all vertices for data hash
+    public List<String> getCompoundVertex(String dataHash) {
+        return verticesByDataHash.get(dataHash);
+    }
+
+    // returns all vertices with edges incoming to given vertex.
+    public List<String> getReferencingVertices(String vertex) {
+        return referencingVertices.get(vertex);
     }
 
     // returns all outgoing edges for the current vertex hash
@@ -41,7 +50,7 @@ public class Graph extends DefaultIxiModule {
 
         while(true) {
 
-            Transaction t = findTransactionByHash(vertex);
+            Transaction t = transactionsByHash.get(vertex);
 
             for(String edge: t.signatureFragments.split("(?<=\\G.{81})"))
                 if(!edge.equals(Trytes.NULL_HASH))
@@ -60,14 +69,13 @@ public class Graph extends DefaultIxiModule {
 
     // returns the hash of the data bundle fragment tail
     public String getData(String vertex) {
-        Transaction t = findTransactionByHash(vertex);
+        Transaction t = transactionsByHash.get(vertex);
         return t.extraDataDigest;
     }
 
     // creates a vertex bundle fragment, returns the tail of it
-    public String createVertex(String data, String[] edges) {
+    public List<TransactionBuilder> createVertex(String data, String[] edges) {
 
-        BundleBuilder bundleBuilder = new BundleBuilder();
         List<TransactionBuilder> transactions = new ArrayList<>();
 
         TransactionBuilder t = new TransactionBuilder();
@@ -89,14 +97,7 @@ public class Graph extends DefaultIxiModule {
         t.signatureFragments = Trytes.padRight(t.signatureFragments, Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
         transactions.add(t);
 
-        Collections.reverse(transactions);
-        bundleBuilder.append(transactions);
-        Bundle vertexBundle = bundleBuilder.build();
-
-        for(Transaction tx: vertexBundle.getTransactions())
-            submit(tx);
-
-        return vertexBundle.getTransactions().get(0).hash;
+        return transactions;
 
     }
 
