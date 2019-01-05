@@ -28,8 +28,7 @@ public class Graph extends DefaultIxiModule {
     @Override
     public void run() {
 
-        //List<TransactionBuilder> transactions = createVertex("DATAHASH9999999999999999999999999999999999999999999999999999999999999999999999999", new String[] { "FIRST9999999999999999999999999999999999999999999999999999999999999999999999999999", "SECOND999999999999999999999999999999999999999999999999999999999999999999999999999" } );
-
+        List<TransactionBuilder> transactions = createVertex("DATAHASH9999999999999999999999999999999999999999999999999999999999999999999999999", new String[] { "FIRST9999999999999999999999999999999999999999999999999999999999999999999999999999", "SECOND999999999999999999999999999999999999999999999999999999999999999999999999999" } );
 
     }
 
@@ -99,6 +98,33 @@ public class Graph extends DefaultIxiModule {
 
         return transactions;
 
+    }
+
+    public String getNextCompoundVertex(String data, String previousVertex) {
+        List<String> vertices = getCompoundVertex(data);
+        for(int i = 0; i < vertices.size(); i++)
+            if(previousVertex.equals(vertices.get(i)))
+                if(i + 1 < vertices.size())
+                    return vertices.get(i + 1);
+        return null;
+    }
+
+    public String getNextReferencingVertex(String vertex, String previousVertex) {
+        List<String> vertices = getReferencingVertices(vertex);
+        for(int i = 0; i < vertices.size(); i++)
+            if(previousVertex.equals(vertices.get(i)))
+                if(i + 1 < vertices.size())
+                    return vertices.get(i + 1);
+         return null;
+    }
+
+    public String getNextEdge(String vertex, String previousEdge) {
+        List<String> edges = getEdges(vertex);
+        for(int i = 0; i < edges.size(); i++)
+            if(previousEdge.equals(edges.get(i)))
+                if(i + 1 < edges.size())
+                    return edges.get(i + 1);
+        return null;
     }
 
     @Override
