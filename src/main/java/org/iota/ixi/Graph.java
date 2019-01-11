@@ -1,13 +1,9 @@
 package org.iota.ixi;
 
-import org.iota.ict.ixi.DefaultIxiModule;
 import org.iota.ict.ixi.IctProxy;
-import org.iota.ict.model.Bundle;
-import org.iota.ict.model.BundleBuilder;
+import org.iota.ict.ixi.IxiModule;
 import org.iota.ict.model.Transaction;
 import org.iota.ict.model.TransactionBuilder;
-import org.iota.ict.network.event.GossipReceiveEvent;
-import org.iota.ict.network.event.GossipSubmitEvent;
 import org.iota.ict.utils.Trytes;
 
 import java.util.ArrayList;
@@ -15,7 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Graph extends DefaultIxiModule {
+public class Graph extends IxiModule {
 
     private Map<String, Transaction> transactionsByHash = new HashMap<>();
     private Map<String, List<String>> verticesByDataHash = new HashMap<>();
@@ -23,13 +19,33 @@ public class Graph extends DefaultIxiModule {
 
     public Graph(IctProxy ict) {
         super(ict);
+        new Thread(this).start();
     }
 
     @Override
     public void run() {
 
-        List<TransactionBuilder> transactions = createVertex("DATAHASH9999999999999999999999999999999999999999999999999999999999999999999999999", new String[] { "FIRST9999999999999999999999999999999999999999999999999999999999999999999999999999", "SECOND999999999999999999999999999999999999999999999999999999999999999999999999999" } );
+        // List<TransactionBuilder> transactions = createVertex("DATAHASH9999999999999999999999999999999999999999999999999999999999999999999999999", new String[] { "FIRST9999999999999999999999999999999999999999999999999999999999999999999999999999", "SECOND999999999999999999999999999999999999999999999999999999999999999999999999999" } );
 
+    }
+
+
+    // returns the hash of the head created, trunk pointing to data, branch pointing to first edge
+    public Transaction startVertex(String data, String edge) {
+        TransactionBuilder transactionBuilder = new TransactionBuilder();
+        transactionBuilder.trunkHash = data;
+        transactionBuilder.branchHash = edge;
+        return transactionBuilder.build();
+    }
+
+    // adds a transaction to the bundle started in startVertex, branch pointing to the edge, returns the new transaction hash
+    public Transaction addEdge(String midVertexHash, String edge, boolean last) {
+        TransactionBuilder transactionBuilder = new TransactionBuilder();
+        transactionBuilder.trunkHash = midVertexHash;
+        transactionBuilder.branchHash = edge;
+        if(last)
+            transactionBuilder.tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 1, 0, 0 }), Transaction.Field.TAG.tryteLength);
+        return transactionBuilder.build();
     }
 
     // returns all vertices for data hash
@@ -125,21 +141,6 @@ public class Graph extends DefaultIxiModule {
                 if(i + 1 < edges.size())
                     return edges.get(i + 1);
         return null;
-    }
-
-    @Override
-    public void onTransactionReceived(GossipReceiveEvent event) {
-        System.out.println("vertex received");
-    }
-
-    @Override
-    public void onTransactionSubmitted(GossipSubmitEvent event) {
-        System.out.println("vertex submitted");
-    }
-
-    @Override
-    public void onIctShutdown() {
-        super.onIctShutdown();
     }
 
 }
