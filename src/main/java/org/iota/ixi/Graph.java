@@ -6,10 +6,7 @@ import org.iota.ict.model.Transaction;
 import org.iota.ict.model.TransactionBuilder;
 import org.iota.ict.utils.Trytes;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Graph extends IxiModule {
 
@@ -30,22 +27,73 @@ public class Graph extends IxiModule {
     }
 
 
-    // returns the hash of the head created, trunk pointing to data, branch pointing to first edge
-    public Transaction startVertex(String data, String edge) {
+    // returns the hash of the created head, trunk pointing to data, branch pointing to first edge
+    public String startVertex(String data, String edge) {
         TransactionBuilder transactionBuilder = new TransactionBuilder();
         transactionBuilder.trunkHash = data;
         transactionBuilder.branchHash = edge;
-        return transactionBuilder.build();
+        transactionBuilder.tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 1, 0, 0 }), Transaction.Field.TAG.tryteLength);
+        Transaction transaction = transactionBuilder.build();
+        transactionsByHash.put(transaction.hash, transaction);
+        return transaction.hash;
     }
 
-    // adds a transaction to the bundle started in startVertex, branch pointing to the edge, returns the new transaction hash
-    public Transaction addEdge(String midVertexHash, String edge, boolean last) {
+    // adds a transaction to the bundle started in startVertex, branch pointing to the edge, returns transaction hash
+    public String addEdge(String midVertexHash, String edge) {
         TransactionBuilder transactionBuilder = new TransactionBuilder();
         transactionBuilder.trunkHash = midVertexHash;
         transactionBuilder.branchHash = edge;
-        if(last)
-            transactionBuilder.tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 1, 0, 0 }), Transaction.Field.TAG.tryteLength);
-        return transactionBuilder.build();
+        Transaction transaction = transactionBuilder.build();
+        transactionsByHash.put(transaction.hash, transaction);
+        return transaction.hash;
+    }
+
+    // create the bundle fragment ready to attach to the tangle, or to put into a bundle, return the fragment tail
+    public List<TransactionBuilder> finalizeVertex(String reflectedTail) {
+
+        List<String> edges = new LinkedList<>();
+
+        String current = reflectedTail;
+        while(true) {
+
+            Transaction t = transactionsByHash.get(current);
+            String edge = t.branchHash;
+            edges.add(edge);
+
+            if(Trytes.toTrits(t.tag)[0] == 1 || t.trunkHash.equals(Trytes.NULL_HASH)) // check if last transaction of vertex
+                break;
+
+            current = t.trunkHash;
+
+        }
+
+        Transaction head = transactionsByHash.get(current);
+        String data = head.trunkHash;
+        String firstEdge = head.branchHash;
+        edges.add(firstEdge);
+
+        List<TransactionBuilder> transactions = new ArrayList<>();
+
+        TransactionBuilder t = new TransactionBuilder();
+        t.extraDataDigest = data;
+        t.signatureFragments = "";
+
+        for(String edge: edges) {
+
+            if(t.signatureFragments.length() < 27 * 81)
+                t.signatureFragments += edge;
+            else {
+                transactions.add(t);
+                t = new TransactionBuilder();
+            }
+
+        }
+
+        // fill signature fragment
+        t.signatureFragments = Trytes.padRight(t.signatureFragments, Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
+        transactions.add(t);
+
+        return transactions;
     }
 
     // returns all vertices for data hash
