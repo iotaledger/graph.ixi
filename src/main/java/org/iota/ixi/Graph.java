@@ -11,7 +11,6 @@ import java.util.*;
 public class Graph extends IxiModule {
 
     private Map<String, Transaction> transactionsByHash = new HashMap<>();
-    private Map<String, List<String>> verticesByDataHash = new HashMap<>();
     private Map<String, List<String>> referencingVertices = new HashMap<>();
 
     public Graph(IctProxy ict) {
@@ -22,12 +21,29 @@ public class Graph extends IxiModule {
     public void run() { ; }
 
     /**
-     * This method starts a reflected vertex with trunk pointing to the data and branch pointing to the first reflected vertex tail that is to be referenced.
+     * This method creates a reflected vertex with trunk pointing to the data and branch pointing to the first outgoing reflected vertex tail that is to be referenced.
+     * @param data the hash of the data bundle fragment tail
+     * @param edges the hashes of all outgoing reflected vertex tail
+     * @return the hash of the reflected vertex tail
+     */
+    public String createVertex(String data, String[] edges) {
+        if(data == null || edges == null || data.length() < 81 || edges.length == 0)
+            return null;
+        String vertex = startVertex(data, edges[0]);
+        for(int i = 1; i < edges.length; i++)
+            vertex = addEdge(vertex, edges[i]);
+        return vertex;
+    }
+
+    /**
+     * This method starts a reflected vertex with trunk pointing to the data and branch pointing to the first outgoing reflected vertex tail that is to be referenced.
      * @param data the hash of the data bundle fragment tail
      * @param edge the hash of the outgoing reflected vertex tail
-     * @return the hash of the reflected vertex head
+     * @return the hash of the created reflected vertex head
      */
     public String startVertex(String data, String edge) {
+        if(data == null || edge == null || data.length() < 81 || edge.length() < 81)
+            return null;
         TransactionBuilder transactionBuilder = new TransactionBuilder();
         transactionBuilder.trunkHash = data;
         transactionBuilder.branchHash = edge;
@@ -38,12 +54,14 @@ public class Graph extends IxiModule {
     }
 
     /**
-     * This method continues a reflected vertex with branch pointing to the next reflected vertex tail that is to be referenced.
+     * This method continues a reflected vertex with branch pointing to the next outgoing reflected vertex tail that is to be referenced.
      * @param midVertexHash the hash of the reflected vertex tail to be continued
      * @param edge the hash of the outgoing reflected vertex tail
      * @return the hash of the new reflected vertex tail
      */
     public String addEdge(String midVertexHash, String edge) {
+        if(midVertexHash == null || edge == null || midVertexHash.length() < 81 || edge.length() < 81)
+            return null;
         TransactionBuilder transactionBuilder = new TransactionBuilder();
         transactionBuilder.trunkHash = midVertexHash;
         transactionBuilder.branchHash = edge;
@@ -147,41 +165,35 @@ public class Graph extends IxiModule {
      * @return the next outgoing edge for the current reflected vertex tail
      */
     public String getNextEdge(String vertex, String previousEdge) {
-        List<String> edges = getEdges(vertex);
-        for(int i = 0; i < edges.size(); i++)
-            if(previousEdge.equals(edges.get(i)))
-                if(i + 1 < edges.size())
-                    return edges.get(i + 1);
-        return null;
-    }
 
-    // creates a vertex bundle fragment, returns the tail of it
-    public List<TransactionBuilder> createVertex(String data, String[] edges) {
+        while(true) {
 
-        List<TransactionBuilder> transactions = new ArrayList<>();
+            Transaction t = transactionsByHash.get(vertex);
+            if(t == null)
+                return null;
 
-        TransactionBuilder t = new TransactionBuilder();
-        t.extraDataDigest = data;
-        t.signatureFragments = "";
+            if(t.branchHash.equals(previousEdge)) {
 
-        for(String edge: edges) {
+                Transaction next = transactionsByHash.get(vertex);
+                if(t == null)
+                    return null;
 
-            if(t.signatureFragments.length() < 27 * 81)
-                t.signatureFragments += edge;
-            else {
-                transactions.add(t);
-                t = new TransactionBuilder();
+                return next.branchHash;
+
             }
+
+            if(Trytes.toTrits(t.tag)[0] == 1 || t.trunkHash.equals(Trytes.NULL_HASH)) // check if last transaction of vertex
+                return null;
+
+            vertex = t.trunkHash;
 
         }
 
-        // fill signature fragment
-        t.signatureFragments = Trytes.padRight(t.signatureFragments, Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
-        transactions.add(t);
-
-        return transactions;
-
     }
+
+
+
+
 
     public String getNextCompoundVertex(String data, String previousVertex) {
         List<String> vertices = getCompoundVertex(data);
@@ -201,14 +213,40 @@ public class Graph extends IxiModule {
          return null;
     }
 
-    // returns all vertices for data hash
-    public List<String> getCompoundVertex(String dataHash) {
-        return verticesByDataHash.get(dataHash);
-    }
+
 
     // returns all vertices with edges incoming to given vertex.
     public List<String> getReferencingVertices(String vertex) {
         return referencingVertices.get(vertex);
+    }
+
+
+    // returns all vertices for data hash = alle knoten die auf ein daten zeigen
+    public List<String> getCompoundVertex(String data) {
+        List<String> ret = new ArrayList<>();
+        for(Transaction transaction: transactionsByHash.values()) {
+            if(isDescendant(transaction.hash, data)) {
+                ret.add(transaction.hash);
+                for(String vertex: new ArrayList<>(ret)) {
+                    if(isDescendant(transaction.hash, vertex))
+                        ret.remove(vertex);
+                }
+            }
+        }
+        return ret;
+    }
+
+    public boolean isDescendant(String vertex, String descendant) {
+        if(vertex.equals(descendant))
+            return false;
+        while(true) {
+            Transaction transaction = transactionsByHash.get(vertex);
+            if(transaction == null)
+                return false;
+            if(transaction.trunkHash.equals(descendant))
+                return true;
+            vertex = transaction.trunkHash;
+        }
     }
 
 }
