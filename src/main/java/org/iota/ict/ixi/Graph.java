@@ -1,7 +1,5 @@
-package org.iota.ixi;
+package org.iota.ict.ixi;
 
-import org.iota.ict.ixi.IctProxy;
-import org.iota.ict.ixi.IxiModule;
 import org.iota.ict.model.Bundle;
 import org.iota.ict.model.Transaction;
 import org.iota.ict.model.TransactionBuilder;
@@ -18,10 +16,12 @@ public class Graph extends IxiModule {
     }
 
     @Override
-    public void run() { ; }
+    public void run() {
+        System.out.println("STARTED");
+    }
 
     /**
-     * This method creates a reflected vertex with trunk pointing to the data and branch pointing to the first outgoing reflected vertex tail that is to be referenced.
+     * This method creates a vertex with trunk pointing to the data and branch pointing to the first outgoing reflected vertex tail that is to be referenced.
      * @param data the hash of the data bundle fragment tail
      * @param edges the hashes of all outgoing reflected vertex tail
      * @return the hash of the reflected vertex tail
@@ -47,7 +47,7 @@ public class Graph extends IxiModule {
         TransactionBuilder transactionBuilder = new TransactionBuilder();
         transactionBuilder.trunkHash = data;
         transactionBuilder.branchHash = edge;
-        transactionBuilder.tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 1, 0, 0 }), Transaction.Field.TAG.tryteLength);
+        transactionBuilder.tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 0, 1, 0 }), Transaction.Field.TAG.tryteLength);
         Transaction transaction = transactionBuilder.build();
         transactionsByHash.put(transaction.hash, transaction);
         return transaction.hash;
@@ -100,6 +100,7 @@ public class Graph extends IxiModule {
         List<TransactionBuilder> transactions = new ArrayList<>();
 
         TransactionBuilder t = new TransactionBuilder();
+        t.tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 0, 0, 1 }), Transaction.Field.TAG.tryteLength);
         t.extraDataDigest = data;
         t.signatureFragments = "";
 
@@ -116,13 +117,13 @@ public class Graph extends IxiModule {
 
         // fill last signature fragment
         t.signatureFragments = Trytes.padRight(t.signatureFragments, Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
-        t.tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 1, 0, 0 }), Transaction.Field.TAG.tryteLength);
+        t.tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 0, 1, 0 }), Transaction.Field.TAG.tryteLength);
         transactions.add(t);
 
         return transactions;
     }
 
-    public String deserializeVertex(Bundle bundle) {
+    public String deserializeBundle(Bundle bundle) {
 
         List<String> edges = new ArrayList<>();
         for(Transaction t: bundle.getTransactions()) {
@@ -131,7 +132,7 @@ public class Graph extends IxiModule {
                 if(!edge.equals(Trytes.NULL_HASH))
                     edges.add(edge);
 
-            if(Trytes.toTrits(t.tag)[0] == 1 || t.trunkHash.equals(Trytes.NULL_HASH)) // check if last transaction of vertex
+            if(Trytes.toTrits(t.tag)[1] == 1 || t.trunkHash.equals(Trytes.NULL_HASH)) // check if last transaction of vertex
                 break;
 
         }
@@ -174,7 +175,7 @@ public class Graph extends IxiModule {
             if(t == null)
                 return ret;
             ret.add(t.branchHash);
-            if(Trytes.toTrits(t.tag)[0] == 1 || t.trunkHash.equals(Trytes.NULL_HASH)) // check if last transaction of vertex
+            if(Trytes.toTrits(t.tag)[1] == 1 || t.trunkHash.equals(Trytes.NULL_HASH)) // check if last transaction of vertex
                 return ret;
             vertex = t.trunkHash;
         }
@@ -204,7 +205,7 @@ public class Graph extends IxiModule {
 
             }
 
-            if(Trytes.toTrits(t.tag)[0] == 1 || t.trunkHash.equals(Trytes.NULL_HASH)) // check if last transaction of vertex
+            if(Trytes.toTrits(t.tag)[1] == 1 || t.trunkHash.equals(Trytes.NULL_HASH)) // check if last transaction of vertex
                 return null;
 
             vertex = t.trunkHash;
@@ -215,25 +216,19 @@ public class Graph extends IxiModule {
 
     // returns all vertices for data hash
     public List<String> getCompoundVertex(String data) {
-        return findReferencingVertices(data);
+        return getReferencingVertices(data);
     }
 
     // returns all vertices with edges incoming to given vertex.
     public List<String> getReferencingVertices(String vertex) {
-        return findReferencingVertices(vertex);
-    }
-
-    public List<String> findReferencingVertices(String hash) {
         List<String> ret = new ArrayList<>();
-        for(Transaction transaction: transactionsByHash.values()) {
-            if(isDescendant(transaction.hash, hash)) {
+        for(Transaction transaction: transactionsByHash.values())
+            if(isDescendant(transaction.hash, vertex)) {
                 ret.add(transaction.hash);
-                for(String descendant: new ArrayList<>(ret)) {
+                for(String descendant: new ArrayList<>(ret))
                     if(isDescendant(transaction.hash, descendant))
                         ret.remove(descendant);
-                }
             }
-        }
         return ret;
     }
 

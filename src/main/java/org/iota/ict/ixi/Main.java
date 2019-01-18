@@ -1,7 +1,6 @@
-package org.iota.ixi;
+package org.iota.ict.ixi;
 
 import org.iota.ict.Ict;
-import org.iota.ict.ixi.IctProxy;
 import org.iota.ict.utils.Properties;
 
 /**
@@ -13,7 +12,7 @@ public class Main {
 
         Properties properties = new Properties();
         Ict ict = new Ict(properties);
-        new Graph(new IctProxy(ict));
+        new Thread(new Graph(new IctProxy(ict))).start();
 
     }
 
