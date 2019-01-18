@@ -2,6 +2,7 @@ package org.iota.ixi;
 
 import org.iota.ict.ixi.IctProxy;
 import org.iota.ict.ixi.IxiModule;
+import org.iota.ict.model.Bundle;
 import org.iota.ict.model.Transaction;
 import org.iota.ict.model.TransactionBuilder;
 import org.iota.ict.utils.Trytes;
@@ -10,8 +11,7 @@ import java.util.*;
 
 public class Graph extends IxiModule {
 
-    private Map<String, Transaction> transactionsByHash = new HashMap<>();
-    private Map<String, List<String>> referencingVertices = new HashMap<>();
+    private Map<String, Transaction> transactionsByHash = Collections.synchronizedMap(new LinkedHashMap());
 
     public Graph(IctProxy ict) {
         super(ict);
@@ -122,6 +122,28 @@ public class Graph extends IxiModule {
         return transactions;
     }
 
+    public String deserializeVertex(Bundle bundle) {
+
+        List<String> edges = new ArrayList<>();
+        for(Transaction t: bundle.getTransactions()) {
+
+            for(String edge: t.signatureFragments.split("(?<=\\G.{81})"))
+                if(!edge.equals(Trytes.NULL_HASH))
+                    edges.add(edge);
+
+            if(Trytes.toTrits(t.tag)[0] == 1 || t.trunkHash.equals(Trytes.NULL_HASH)) // check if last transaction of vertex
+                break;
+
+        }
+
+        String serializedVertexHash = bundle.getTransactions().get(0).hash;
+        edges.add(serializedVertexHash);
+        String data = bundle.getTransactions().get(0).extraDataDigest;
+
+        return createVertex(data, edges.toArray(new String[edges.size()]));
+
+    }
+
     /**
      * This method returns the hash of the data bundle fragment tail.
      * @param vertex the hash of the reflected vertex tail
@@ -191,9 +213,42 @@ public class Graph extends IxiModule {
 
     }
 
+    // returns all vertices for data hash
+    public List<String> getCompoundVertex(String data) {
+        return findReferencingVertices(data);
+    }
 
+    // returns all vertices with edges incoming to given vertex.
+    public List<String> getReferencingVertices(String vertex) {
+        return findReferencingVertices(vertex);
+    }
 
+    public List<String> findReferencingVertices(String hash) {
+        List<String> ret = new ArrayList<>();
+        for(Transaction transaction: transactionsByHash.values()) {
+            if(isDescendant(transaction.hash, hash)) {
+                ret.add(transaction.hash);
+                for(String descendant: new ArrayList<>(ret)) {
+                    if(isDescendant(transaction.hash, descendant))
+                        ret.remove(descendant);
+                }
+            }
+        }
+        return ret;
+    }
 
+    public boolean isDescendant(String vertex, String descendant) {
+        if(vertex.equals(descendant))
+            return false;
+        while(true) {
+            Transaction transaction = transactionsByHash.get(vertex);
+            if(transaction == null)
+                return false;
+            if(transaction.trunkHash.equals(descendant) || transaction.branchHash.equals(descendant))
+                return true;
+            vertex = transaction.trunkHash;
+        }
+    }
 
     public String getNextCompoundVertex(String data, String previousVertex) {
         List<String> vertices = getCompoundVertex(data);
@@ -213,40 +268,8 @@ public class Graph extends IxiModule {
          return null;
     }
 
-
-
-    // returns all vertices with edges incoming to given vertex.
-    public List<String> getReferencingVertices(String vertex) {
-        return referencingVertices.get(vertex);
-    }
-
-
-    // returns all vertices for data hash = alle knoten die auf ein daten zeigen
-    public List<String> getCompoundVertex(String data) {
-        List<String> ret = new ArrayList<>();
-        for(Transaction transaction: transactionsByHash.values()) {
-            if(isDescendant(transaction.hash, data)) {
-                ret.add(transaction.hash);
-                for(String vertex: new ArrayList<>(ret)) {
-                    if(isDescendant(transaction.hash, vertex))
-                        ret.remove(vertex);
-                }
-            }
-        }
-        return ret;
-    }
-
-    public boolean isDescendant(String vertex, String descendant) {
-        if(vertex.equals(descendant))
-            return false;
-        while(true) {
-            Transaction transaction = transactionsByHash.get(vertex);
-            if(transaction == null)
-                return false;
-            if(transaction.trunkHash.equals(descendant))
-                return true;
-            vertex = transaction.trunkHash;
-        }
+    public Map<String,Transaction> getTransactionsByHash() {
+        return transactionsByHash;
     }
 
 }
