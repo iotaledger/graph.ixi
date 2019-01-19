@@ -11,14 +11,12 @@ public class Graph extends IxiModule {
 
     private Map<String, Transaction> transactionsByHash = Collections.synchronizedMap(new LinkedHashMap());
 
-    public Graph(IctProxy ict) {
+    public Graph(Ixi ict) {
         super(ict);
     }
 
     @Override
-    public void run() {
-        System.out.println("STARTED");
-    }
+    public void run() { ; }
 
     /**
      * This method creates a vertex with trunk pointing to the data and branch pointing to the first outgoing reflected vertex tail that is to be referenced.
@@ -27,7 +25,7 @@ public class Graph extends IxiModule {
      * @return the hash of the reflected vertex tail
      */
     public String createVertex(String data, String[] edges) {
-        if(data == null || edges == null || data.length() < 81 || edges.length == 0)
+        if(!InputValidator.isValidHash(data) || !InputValidator.areValidHashes(edges))
             return null;
         String vertex = startVertex(data, edges[0]);
         for(int i = 1; i < edges.length; i++)
@@ -42,7 +40,7 @@ public class Graph extends IxiModule {
      * @return the hash of the created reflected vertex head
      */
     public String startVertex(String data, String edge) {
-        if(data == null || edge == null || data.length() < 81 || edge.length() < 81)
+        if(!InputValidator.isValidHash(data) || !InputValidator.isValidHash(edge))
             return null;
         TransactionBuilder transactionBuilder = new TransactionBuilder();
         transactionBuilder.trunkHash = data;
@@ -60,7 +58,7 @@ public class Graph extends IxiModule {
      * @return the hash of the new reflected vertex tail
      */
     public String addEdge(String midVertexHash, String edge) {
-        if(midVertexHash == null || edge == null || midVertexHash.length() < 81 || edge.length() < 81)
+        if(!InputValidator.isValidHash(midVertexHash) || !InputValidator.isValidHash(edge))
             return null;
         TransactionBuilder transactionBuilder = new TransactionBuilder();
         transactionBuilder.trunkHash = midVertexHash;
@@ -77,16 +75,23 @@ public class Graph extends IxiModule {
      */
     public List<TransactionBuilder> finalizeVertex(String reflectedTail) {
 
+        if(!InputValidator.isValidHash(reflectedTail))
+            return null;
+
         List<String> edges = new LinkedList<>();
 
         while(true) {
 
             Transaction t = transactionsByHash.get(reflectedTail);
+
+            if(t == null)
+                break;
+
+            if(Trytes.toTrits(t.tag)[1] == 1)
+                break;
+
             String edge = t.branchHash;
             edges.add(edge);
-
-            if(Trytes.toTrits(t.tag)[0] == 1 || t.trunkHash.equals(Trytes.NULL_HASH)) // check if last transaction of vertex
-                break;
 
             reflectedTail = t.trunkHash;
 
@@ -96,6 +101,7 @@ public class Graph extends IxiModule {
         String data = head.trunkHash;
         String firstEdge = head.branchHash;
         edges.add(firstEdge);
+        Collections.reverse(edges);
 
         List<TransactionBuilder> transactions = new ArrayList<>();
 
@@ -114,6 +120,7 @@ public class Graph extends IxiModule {
             }
 
         }
+
 
         // fill last signature fragment
         t.signatureFragments = Trytes.padRight(t.signatureFragments, Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
@@ -151,6 +158,10 @@ public class Graph extends IxiModule {
      * @return the hash of the data bundle fragment tail
      */
     public String getData(String vertex) {
+
+        if(!InputValidator.isValidHash(vertex))
+            return null;
+
         Transaction transaction = null;
         while(true) {
             transaction = transactionsByHash.get(vertex);

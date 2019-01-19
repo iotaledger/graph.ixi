@@ -1,7 +1,7 @@
 package org.iota.ict.ixi;
 
 import org.iota.ict.Ict;
-import org.iota.ict.utils.Properties;
+import org.iota.ict.utils.properties.Properties;
 import org.junit.*;
 
 public abstract class GraphTestTemplate {
@@ -11,8 +11,8 @@ public abstract class GraphTestTemplate {
 
     @Before
     public void setUp() {
-        ict = new Ict(new Properties());
-        graph = new Graph(new IctProxy(ict));
+        ict = new Ict(new Properties().toFinal());
+        graph = new Graph(ict);
     }
 
     @After
