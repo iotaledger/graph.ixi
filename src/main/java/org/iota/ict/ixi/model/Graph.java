@@ -63,6 +63,20 @@ public class Graph {
         return transaction.hash;
     }
 
+    public String addEdges(String midVertexHash, String[] edges) {
+        if(!InputValidator.isValidHash(midVertexHash) || !InputValidator.areValidHashes(edges))
+            return null;
+        for(String edge: edges) {
+            TransactionBuilder transactionBuilder = new TransactionBuilder();
+            transactionBuilder.trunkHash = midVertexHash;
+            transactionBuilder.branchHash = edge;
+            Transaction transaction = transactionBuilder.build();
+            transactionsByHash.put(transaction.hash, transaction);
+            midVertexHash = transaction.hash;
+        }
+        return midVertexHash;
+    }
+
     /**
      * This method serializes a reflected vertex into a bundle fragment ready to put into a bundle.
      * @param reflectedTail the hash of the reflected vertex tail to be finalized
@@ -96,12 +110,11 @@ public class Graph {
         String data = head.trunkHash();
         String firstEdge = head.branchHash();
         edges.add(firstEdge);
-        Collections.reverse(edges);
 
         List<TransactionBuilder> transactions = new ArrayList<>();
 
         TransactionBuilder t = new TransactionBuilder();
-        t.tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 0, 1, 0 }), Transaction.Field.TAG.tryteLength);
+        t.tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 0, 0, 1 }), Transaction.Field.TAG.tryteLength);
         t.extraDataDigest = data;
         t.signatureFragments = "";
 
@@ -112,6 +125,7 @@ public class Graph {
             else {
                 transactions.add(t);
                 t = new TransactionBuilder();
+                t.signatureFragments = edge;
             }
 
         }
@@ -120,20 +134,21 @@ public class Graph {
         t.signatureFragments = Trytes.padRight(t.signatureFragments, Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
 
         // if first transaction == last transaction
-        if(Trytes.toTrits(t.tag)[1] == 1)
+        if(Trytes.toTrits(t.tag)[2] == 1)
             t.tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 0, 1, 1 }), Transaction.Field.TAG.tryteLength);
         else
-            t.tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 0, 0, 1 }), Transaction.Field.TAG.tryteLength);
+            t.tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 0, 1, 0 }), Transaction.Field.TAG.tryteLength);
 
         transactions.add(t);
 
         return transactions;
     }
 
-    public static Bundle serialize(List<TransactionBuilder> ... vertices) {
+    public Bundle serialize(List<TransactionBuilder> ... vertices) {
         List<TransactionBuilder> collection = new ArrayList<>();
         for(List<TransactionBuilder> transactionBuilderList: vertices)
             collection.addAll(transactionBuilderList);
+        Collections.reverse(collection);
         BundleBuilder bundleBuilder = new BundleBuilder();
         bundleBuilder.append(collection);
         return bundleBuilder.build();
@@ -174,10 +189,13 @@ public class Graph {
         Transaction transaction = null;
         while(true) {
             transaction = transactionsByHash.get(vertex);
-            if(Trytes.toTrits(transaction.tag())[0] == 1)
-                break;
-            if(transaction.trunkHash().equals(Trytes.NULL_HASH))
+
+            if(transaction == null)
                 return null;
+
+            if(Trytes.toTrits(transaction.tag())[1] == 1)
+                break;
+
             vertex = transaction.trunkHash();
         }
         return transaction.trunkHash();
