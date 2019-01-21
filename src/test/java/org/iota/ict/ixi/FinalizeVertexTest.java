@@ -27,7 +27,8 @@ public class FinalizeVertexTest extends GraphTestTemplate {
 
         Assert.assertEquals(b.extraDataDigest, dataHash);
         Assert.assertEquals(b.signatureFragments, Trytes.padRight(firstEdge+secondEdge+thirdEdge, Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength));
-        Assert.assertEquals(1, Trytes.toTrits(b.tag)[1]);
+        Assert.assertEquals(1, Trytes.toTrits(b.tag)[2]); // start flag expected
+        Assert.assertEquals(1, Trytes.toTrits(b.tag)[1]); // end  flag expected
 
     }
 

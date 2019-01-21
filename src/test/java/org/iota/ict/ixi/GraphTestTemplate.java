@@ -1,24 +1,21 @@
 package org.iota.ict.ixi;
 
-import org.iota.ict.Ict;
-import org.iota.ict.utils.properties.Properties;
-import org.junit.*;
+import org.iota.ict.ixi.model.Graph;
+import org.junit.After;
+import org.junit.BeforeClass;
 
 public abstract class GraphTestTemplate {
 
-    protected Ict ict;
-    protected Graph graph;
+    protected static Graph graph;
 
-    @Before
-    public void setUp() {
-        ict = new Ict(new Properties().toFinal());
-        graph = new Graph(ict);
+    @BeforeClass
+    public static void setUp() {
+        graph = new Graph();
     }
 
     @After
     public void tearDown() {
-        graph.terminate();
-        ict.terminate();
+        graph.getTransactionsByHash().clear();
     }
 
 }

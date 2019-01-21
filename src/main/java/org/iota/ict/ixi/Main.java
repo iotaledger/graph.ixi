@@ -1,6 +1,7 @@
 package org.iota.ict.ixi;
 
 import org.iota.ict.Ict;
+import org.iota.ict.ixi.model.Graph;
 import org.iota.ict.utils.properties.Properties;
 
 /**
@@ -12,7 +13,7 @@ public class Main {
 
         Properties properties = new Properties();
         Ict ict = new Ict(properties.toFinal());
-        new Thread(new Graph(ict)).start();
+        new Thread(new DefaultGraphModule(ict)).start();
 
     }
 

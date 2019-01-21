@@ -1,4 +1,4 @@
-package org.iota.ict.ixi;
+package org.iota.ict.ixi.util;
 
 public class InputValidator {
 

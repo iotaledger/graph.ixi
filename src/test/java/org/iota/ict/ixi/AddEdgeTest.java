@@ -21,16 +21,16 @@ public class AddEdgeTest extends GraphTestTemplate {
         Assert.assertEquals(3, graph.getTransactionsByHash().size());
 
         Transaction thirdTransaction = graph.getTransactionsByHash().get(thirdTranscationHash);
-        Assert.assertEquals(thirdEdge, thirdTransaction.branchHash);
-        Assert.assertEquals(secondTranscationHash, thirdTransaction.trunkHash);
+        Assert.assertEquals(thirdEdge, thirdTransaction.branchHash());
+        Assert.assertEquals(secondTranscationHash, thirdTransaction.trunkHash());
 
         Transaction secondTransaction = graph.getTransactionsByHash().get(secondTranscationHash);
-        Assert.assertEquals(secondEdge, secondTransaction.branchHash);
-        Assert.assertEquals(firstTranscationHash, secondTransaction.trunkHash);
+        Assert.assertEquals(secondEdge, secondTransaction.branchHash());
+        Assert.assertEquals(firstTranscationHash, secondTransaction.trunkHash());
 
         Transaction firstTransaction = graph.getTransactionsByHash().get(firstTranscationHash);
-        Assert.assertEquals(firstEdge, firstTransaction.branchHash);
-        Assert.assertEquals(dataHash, firstTransaction.trunkHash);
+        Assert.assertEquals(firstEdge, firstTransaction.branchHash());
+        Assert.assertEquals(dataHash, firstTransaction.trunkHash());
 
     }
 

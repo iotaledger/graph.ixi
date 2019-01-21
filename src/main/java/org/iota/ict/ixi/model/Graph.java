@@ -1,22 +1,17 @@
-package org.iota.ict.ixi;
+package org.iota.ict.ixi.model;
 
+import org.iota.ict.ixi.util.InputValidator;
 import org.iota.ict.model.Bundle;
+import org.iota.ict.model.BundleBuilder;
 import org.iota.ict.model.Transaction;
 import org.iota.ict.model.TransactionBuilder;
 import org.iota.ict.utils.Trytes;
 
 import java.util.*;
 
-public class Graph extends IxiModule {
+public class Graph {
 
     private Map<String, Transaction> transactionsByHash = Collections.synchronizedMap(new LinkedHashMap());
-
-    public Graph(Ixi ict) {
-        super(ict);
-    }
-
-    @Override
-    public void run() { ; }
 
     /**
      * This method creates a vertex with trunk pointing to the data and branch pointing to the first outgoing reflected vertex tail that is to be referenced.
@@ -87,26 +82,26 @@ public class Graph extends IxiModule {
             if(t == null)
                 break;
 
-            if(Trytes.toTrits(t.tag)[1] == 1)
+            if(Trytes.toTrits(t.tag())[1] == 1)
                 break;
 
-            String edge = t.branchHash;
+            String edge = t.branchHash();
             edges.add(edge);
 
-            reflectedTail = t.trunkHash;
+            reflectedTail = t.trunkHash();
 
         }
 
         Transaction head = transactionsByHash.get(reflectedTail);
-        String data = head.trunkHash;
-        String firstEdge = head.branchHash;
+        String data = head.trunkHash();
+        String firstEdge = head.branchHash();
         edges.add(firstEdge);
         Collections.reverse(edges);
 
         List<TransactionBuilder> transactions = new ArrayList<>();
 
         TransactionBuilder t = new TransactionBuilder();
-        t.tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 0, 0, 1 }), Transaction.Field.TAG.tryteLength);
+        t.tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 0, 1, 0 }), Transaction.Field.TAG.tryteLength);
         t.extraDataDigest = data;
         t.signatureFragments = "";
 
@@ -121,32 +116,46 @@ public class Graph extends IxiModule {
 
         }
 
-
         // fill last signature fragment
         t.signatureFragments = Trytes.padRight(t.signatureFragments, Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
-        t.tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 0, 1, 0 }), Transaction.Field.TAG.tryteLength);
+
+        // if first transaction == last transaction
+        if(Trytes.toTrits(t.tag)[1] == 1)
+            t.tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 0, 1, 1 }), Transaction.Field.TAG.tryteLength);
+        else
+            t.tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 0, 0, 1 }), Transaction.Field.TAG.tryteLength);
+
         transactions.add(t);
 
         return transactions;
     }
 
-    public String deserializeBundle(Bundle bundle) {
+    public static Bundle serialize(List<TransactionBuilder> ... vertices) {
+        List<TransactionBuilder> collection = new ArrayList<>();
+        for(List<TransactionBuilder> transactionBuilderList: vertices)
+            collection.addAll(transactionBuilderList);
+        BundleBuilder bundleBuilder = new BundleBuilder();
+        bundleBuilder.append(collection);
+        return bundleBuilder.build();
+    }
+
+    public String deserialize(Bundle bundle) {
 
         List<String> edges = new ArrayList<>();
         for(Transaction t: bundle.getTransactions()) {
 
-            for(String edge: t.signatureFragments.split("(?<=\\G.{81})"))
+            for(String edge: t.signatureFragments().split("(?<=\\G.{81})"))
                 if(!edge.equals(Trytes.NULL_HASH))
                     edges.add(edge);
 
-            if(Trytes.toTrits(t.tag)[1] == 1 || t.trunkHash.equals(Trytes.NULL_HASH)) // check if last transaction of vertex
+            if(Trytes.toTrits(t.tag())[1] == 1 || t.trunkHash().equals(Trytes.NULL_HASH)) // check if last transaction of vertex
                 break;
 
         }
 
         String serializedVertexHash = bundle.getTransactions().get(0).hash;
         edges.add(serializedVertexHash);
-        String data = bundle.getTransactions().get(0).extraDataDigest;
+        String data = bundle.getTransactions().get(0).extraDataDigest();
 
         return createVertex(data, edges.toArray(new String[edges.size()]));
 
@@ -165,13 +174,13 @@ public class Graph extends IxiModule {
         Transaction transaction = null;
         while(true) {
             transaction = transactionsByHash.get(vertex);
-            if(Trytes.toTrits(transaction.tag)[0] == 1)
+            if(Trytes.toTrits(transaction.tag())[0] == 1)
                 break;
-            if(transaction.trunkHash.equals(Trytes.NULL_HASH))
+            if(transaction.trunkHash().equals(Trytes.NULL_HASH))
                 return null;
-            vertex = transaction.trunkHash;
+            vertex = transaction.trunkHash();
         }
-        return transaction.trunkHash;
+        return transaction.trunkHash();
     }
 
     /**
@@ -185,10 +194,10 @@ public class Graph extends IxiModule {
             Transaction t = transactionsByHash.get(vertex);
             if(t == null)
                 return ret;
-            ret.add(t.branchHash);
-            if(Trytes.toTrits(t.tag)[1] == 1 || t.trunkHash.equals(Trytes.NULL_HASH)) // check if last transaction of vertex
+            ret.add(t.branchHash());
+            if(Trytes.toTrits(t.tag())[1] == 1 || t.trunkHash().equals(Trytes.NULL_HASH)) // check if last transaction of vertex
                 return ret;
-            vertex = t.trunkHash;
+            vertex = t.trunkHash();
         }
     }
 
@@ -206,20 +215,20 @@ public class Graph extends IxiModule {
             if(t == null)
                 return null;
 
-            if(t.branchHash.equals(previousEdge)) {
+            if(t.branchHash().equals(previousEdge)) {
 
                 Transaction next = transactionsByHash.get(vertex);
                 if(t == null)
                     return null;
 
-                return next.branchHash;
+                return next.branchHash();
 
             }
 
-            if(Trytes.toTrits(t.tag)[1] == 1 || t.trunkHash.equals(Trytes.NULL_HASH)) // check if last transaction of vertex
+            if(Trytes.toTrits(t.tag())[1] == 1 || t.trunkHash().equals(Trytes.NULL_HASH)) // check if last transaction of vertex
                 return null;
 
-            vertex = t.trunkHash;
+            vertex = t.trunkHash();
 
         }
 
@@ -250,9 +259,9 @@ public class Graph extends IxiModule {
             Transaction transaction = transactionsByHash.get(vertex);
             if(transaction == null)
                 return false;
-            if(transaction.trunkHash.equals(descendant) || transaction.branchHash.equals(descendant))
+            if(transaction.trunkHash().equals(descendant) || transaction.branchHash().equals(descendant))
                 return true;
-            vertex = transaction.trunkHash;
+            vertex = transaction.trunkHash();
         }
     }
 

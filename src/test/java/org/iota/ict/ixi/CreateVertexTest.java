@@ -16,9 +16,9 @@ public class CreateVertexTest extends GraphTestTemplate {
         String headHash = graph.createVertex(dataHash, new String[] { firstEdge });
         Transaction head = graph.getTransactionsByHash().get(headHash);
 
-        Assert.assertEquals(dataHash, head.trunkHash);
-        Assert.assertEquals(firstEdge, head.branchHash);
-        Assert.assertEquals(1, Trytes.toTrits(head.tag)[1]);
+        Assert.assertEquals(dataHash, head.trunkHash());
+        Assert.assertEquals(firstEdge, head.branchHash());
+        Assert.assertEquals(1, Trytes.toTrits(head.tag())[1]);
 
     }
 
