@@ -40,7 +40,7 @@ public class FinalizeVertexTest extends GraphTestTemplate {
         String firstEdge = "FIRST9EDGE99999999999999999999999999999999999999999999999999999999999999999999999";
 
         String firstTranscationHash = graph.startVertex(dataHash, firstEdge);
-        String[] edges = VertexGenerator.generateRandomEdges(80).stream().toArray(String[]::new);
+        String[] edges = VertexGenerator.generateRandomEdges(80);
 
         String currentTail = graph.addEdges(firstTranscationHash, edges);
 

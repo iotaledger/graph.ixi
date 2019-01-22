@@ -26,7 +26,7 @@ public class VertexGenerator {
         if(edges <= 0)
             return ret;
 
-        String[] e = generateRandomEdges(edges).stream().toArray(String[]::new);
+        String[] e = generateRandomEdges(edges);
 
         Graph graph = new Graph();
         String tail = graph.createVertex(random(), e);
@@ -35,17 +35,14 @@ public class VertexGenerator {
 
     }
 
-    public static List<String> generateRandomEdges(int edges) {
+    public static String[] generateRandomEdges(int edges) {
 
-        List<String> ret = new ArrayList<>();
-
-        if(edges <= 0)
-            return ret;
+        String[] e = new String[edges];
 
         for(int i = 0; i < edges; i++)
-            ret.add(random());
+            e[i] = random();
 
-        return ret;
+        return e;
 
     }
 
