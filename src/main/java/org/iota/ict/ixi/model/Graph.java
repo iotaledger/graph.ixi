@@ -63,6 +63,12 @@ public class Graph {
         return transaction.hash;
     }
 
+    /**
+     * This method continues a reflected vertex with branches pointing to the next outgoing reflected vertex tails that are to be referenced.
+     * @param midVertexHash the hash of the reflected vertex tail to be continued
+     * @param edges the hashes of the outgoing reflected vertex tail
+     * @return the hash of the new reflected vertex tail
+     */
     public String addEdges(String midVertexHash, String[] edges) {
         if(!InputValidator.isValidHash(midVertexHash) || !InputValidator.areValidHashes(edges))
             return null;
@@ -154,23 +160,27 @@ public class Graph {
         return bundleBuilder.build();
     }
 
-    public String deserialize(Bundle bundle) {
+    public String deserializeAndStore(Bundle bundle) {
+        return deserializeAndStore(bundle.getTransactions());
+    }
+
+    public String deserializeAndStore(List<Transaction> transactions) {
 
         List<String> edges = new ArrayList<>();
-        for(Transaction t: bundle.getTransactions()) {
+        for(Transaction t: transactions) {
 
             for(String edge: t.signatureFragments().split("(?<=\\G.{81})"))
                 if(!edge.equals(Trytes.NULL_HASH))
                     edges.add(edge);
 
-            if(Trytes.toTrits(t.tag())[1] == 1 || t.trunkHash().equals(Trytes.NULL_HASH)) // check if last transaction of vertex
+            if(Trytes.toTrits(t.tag())[1] == 1) // check if last transaction of bundle
                 break;
 
         }
 
-        String serializedVertexHash = bundle.getTransactions().get(0).hash;
+        String serializedVertexHash = transactions.get(0).hash;
         edges.add(serializedVertexHash);
-        String data = bundle.getTransactions().get(0).extraDataDigest();
+        String data = transactions.get(0).extraDataDigest();
 
         return createVertex(data, edges.toArray(new String[edges.size()]));
 
@@ -298,7 +308,7 @@ public class Graph {
             if(previousVertex.equals(vertices.get(i)))
                 if(i + 1 < vertices.size())
                     return vertices.get(i + 1);
-         return null;
+        return null;
     }
 
     public Map<String,Transaction> getTransactionsByHash() {

@@ -1,5 +1,8 @@
 package org.iota.ict.ixi.util;
 
+import org.iota.ict.model.Transaction;
+import org.iota.ict.utils.Trytes;
+
 public class InputValidator {
 
     public static boolean isValidHash(String hash) {
@@ -18,6 +21,18 @@ public class InputValidator {
                 return false;
         }
         return true;
+    }
+
+    public static boolean hasVertexStartFlagSet(Transaction transaction) {
+        if(Trytes.toTrits(transaction.tag())[2] == 1)
+            return true;
+        return false;
+    }
+
+    public static boolean hasVertexEndFlagSet(Transaction transaction) {
+        if(Trytes.toTrits(transaction.tag())[1] == 1)
+            return true;
+        return false;
     }
 
 }

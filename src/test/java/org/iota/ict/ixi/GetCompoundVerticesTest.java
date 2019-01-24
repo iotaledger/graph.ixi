@@ -31,10 +31,10 @@ public class GetCompoundVerticesTest extends GraphTestTemplate {
         String firstEdge = "FIRST9EDGE99999999999999999999999999999999999999999999999999999999999999999999999";
 
         String firstTranscationHash = graph.startVertex(dataHash, firstEdge);
-        String tail1 = graph.addEdges(firstTranscationHash, VertexGenerator.generateRandomEdges(1000));
+        String tail1 = graph.addEdges(firstTranscationHash, VertexGenerator.generateRandomEdges(50));
 
         String secondTranscationHash = graph.startVertex(dataHash, firstEdge);
-        String tail2 = graph.addEdges(secondTranscationHash, VertexGenerator.generateRandomEdges(1000));
+        String tail2 = graph.addEdges(secondTranscationHash, VertexGenerator.generateRandomEdges(50));
 
         List<String> compoundVertices = graph.getCompoundVertex(dataHash);
 
@@ -43,6 +43,5 @@ public class GetCompoundVerticesTest extends GraphTestTemplate {
         Assert.assertEquals(tail2, compoundVertices.get(1));
 
     }
-
 
 }
