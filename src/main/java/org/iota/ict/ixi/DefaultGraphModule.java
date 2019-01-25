@@ -22,6 +22,7 @@ public class DefaultGraphModule extends IxiModule {
 
             if(InputValidator.hasVertexStartFlagSet(transaction)) {
 
+                // Check if graph contains already serialized vertex, if not add vertex to the graph
                 if(graph.getReferencingVertices(transaction.hash).size() == 0) {
 
                     List<Transaction> vertex = completeVertex(transaction);
@@ -37,7 +38,7 @@ public class DefaultGraphModule extends IxiModule {
     @Override
     public void run() { ; }
 
-    public void submitBundle(Bundle bundle) {
+    public void submit(Bundle bundle) {
         for(Transaction transaction: bundle.getTransactions())
             ixi.submit(transaction);
     }

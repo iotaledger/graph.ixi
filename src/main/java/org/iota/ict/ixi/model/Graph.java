@@ -14,10 +14,10 @@ public class Graph {
     private Map<String, Transaction> transactionsByHash = Collections.synchronizedMap(new LinkedHashMap());
 
     /**
-     * This method creates a vertex with trunk pointing to the data and branch pointing to the first outgoing reflected vertex tail that is to be referenced.
-     * @param data the hash of the data bundle fragment tail
-     * @param edges the hashes of all outgoing reflected vertex tail
-     * @return the hash of the reflected vertex tail
+     * Creates a vertex with trunk pointing to the data and branch pointing to the outgoing vertex tails that are to be referenced.
+     * @param data the hash of the data bundle fragment tail that is to be referenced
+     * @param edges the hashes of all outgoing vertex tails that are to be referenced
+     * @return the hash of the created vertex tail
      */
     public String createVertex(String data, String[] edges) {
         if(!InputValidator.isValidHash(data) || !InputValidator.areValidHashes(edges))
@@ -29,10 +29,10 @@ public class Graph {
     }
 
     /**
-     * This method starts a reflected vertex with trunk pointing to the data and branch pointing to the first outgoing reflected vertex tail that is to be referenced.
-     * @param data the hash of the data bundle fragment tail
-     * @param edge the hash of the outgoing reflected vertex tail
-     * @return the hash of the created reflected vertex head
+     * Starts a new vertex with trunk pointing to the data and branch pointing to the first vertex that is to be referenced.
+     * @param data the data bundle fragment tail that is to be referenced
+     * @param edge the first vertex tail that is to be referenced
+     * @return the created vertex head
      */
     public String startVertex(String data, String edge) {
         if(!InputValidator.isValidHash(data) || !InputValidator.isValidHash(edge))
@@ -47,10 +47,10 @@ public class Graph {
     }
 
     /**
-     * This method continues a reflected vertex with branch pointing to the next outgoing reflected vertex tail that is to be referenced.
-     * @param midVertexHash the hash of the reflected vertex tail to be continued
-     * @param edge the hash of the outgoing reflected vertex tail
-     * @return the hash of the new reflected vertex tail
+     * Continues a vertex with branch pointing to the next vertex that is to be referenced.
+     * @param midVertexHash the vertex tail to be continued
+     * @param edge the vertex tail that is to be referenced
+     * @return the new vertex tail
      */
     public String addEdge(String midVertexHash, String edge) {
         if(!InputValidator.isValidHash(midVertexHash) || !InputValidator.isValidHash(edge))
@@ -64,10 +64,10 @@ public class Graph {
     }
 
     /**
-     * This method continues a reflected vertex with branches pointing to the next outgoing reflected vertex tails that are to be referenced.
-     * @param midVertexHash the hash of the reflected vertex tail to be continued
-     * @param edges the hashes of the outgoing reflected vertex tail
-     * @return the hash of the new reflected vertex tail
+     * Continues a vertex with the branches pointing to the vertices that are to be referenced.
+     * @param midVertexHash the vertex tail to be continued
+     * @param edges the vertex tails to be referenced
+     * @return the new vertex tail
      */
     public String addEdges(String midVertexHash, String[] edges) {
         if(!InputValidator.isValidHash(midVertexHash) || !InputValidator.areValidHashes(edges))
@@ -84,8 +84,8 @@ public class Graph {
     }
 
     /**
-     * This method serializes a reflected vertex into a bundle fragment ready to put into a bundle.
-     * @param reflectedTail the hash of the reflected vertex tail to be finalized
+     * Finalizes a vertex ready to put into a bundle.
+     * @param reflectedTail the vertex tail to be finalized
      * @return the bundle fragment ready to put into a bundle
      */
     public List<TransactionBuilder> finalizeVertex(String reflectedTail) {
@@ -150,6 +150,11 @@ public class Graph {
         return transactions;
     }
 
+    /**
+     * Serializes bundle fragments ready to attach to the Tangle.
+     * @param vertices the bundle fragments to serialize
+     * @return the bundle ready to attach to the Tangle
+     */
     public Bundle serialize(List<TransactionBuilder> ... vertices) {
         List<TransactionBuilder> collection = new ArrayList<>();
         for(List<TransactionBuilder> transactionBuilderList: vertices)
@@ -160,36 +165,78 @@ public class Graph {
         return bundleBuilder.build();
     }
 
-    public String deserializeAndStore(Bundle bundle) {
+    /**
+     * Deserializes and adds all vertices included in a bundle to the graph.
+     * @param bundle the bundle to deserialize
+     * @return to tails of the added vertices
+     */
+    public String[] deserializeAndAdd(Bundle bundle) {
         return deserializeAndStore(bundle.getTransactions());
     }
 
-    public String deserializeAndStore(List<Transaction> transactions) {
+    /**
+     * Deserializes and adds all vertices included in a bundle fragment to the graph.
+     * @param transactions the bundle fragment to deserialize
+     * @return to tails of the added vertices
+     */
+    public String[] deserializeAndStore(List<Transaction> transactions) {
 
-        List<String> edges = new ArrayList<>();
+        List<String> tails = new ArrayList<>();
+
+        // Dissociate vertices from bundle
+
+        List<List<Transaction>> vertices = new ArrayList<>();
+
+        boolean vertexStart = false;
+        List<Transaction> vertex = new ArrayList<>();
         for(Transaction t: transactions) {
 
-            for(String edge: t.signatureFragments().split("(?<=\\G.{81})"))
-                if(!edge.equals(Trytes.NULL_HASH))
-                    edges.add(edge);
+            if(InputValidator.hasVertexStartFlagSet(t))
+                vertexStart = true;
 
-            if(Trytes.toTrits(t.tag())[1] == 1) // check if last transaction of bundle
-                break;
+            vertex.add(t);
+
+            if(InputValidator.hasVertexEndFlagSet(t))
+                if(vertexStart) {
+                    vertices.add(vertex);
+                    vertexStart = false;
+                    vertex = new ArrayList<>();
+                }
 
         }
 
-        String serializedVertexHash = transactions.get(0).hash;
-        edges.add(serializedVertexHash);
-        String data = transactions.get(0).extraDataDigest();
+        // Get all edges of found vertices
 
-        return createVertex(data, edges.toArray(new String[edges.size()]));
+        List<List<String>> edgesOfAllVertices = new ArrayList<>();
+
+        for(List<Transaction> v: vertices) {
+
+            List<String> edges = new ArrayList<>();
+            for(Transaction t: v) {
+                for(String edge: t.signatureFragments().split("(?<=\\G.{81})"))
+                    if(!edge.equals(Trytes.NULL_HASH))
+                        edges.add(edge);
+
+                if(Trytes.toTrits(t.tag())[1] == 1) // check if last transaction of bundle
+                    break;
+            }
+
+            String serializedVertexHash = transactions.get(0).hash;
+            edges.add(serializedVertexHash);
+            String data = transactions.get(0).extraDataDigest();
+
+            tails.add(createVertex(data, edges.toArray(new String[edges.size()])));
+
+        }
+
+        return tails.toArray(new String[tails.size()]);
 
     }
 
     /**
-     * This method returns the hash of the data bundle fragment tail.
-     * @param vertex the hash of the reflected vertex tail
-     * @return the hash of the data bundle fragment tail
+     * Returns the data bundle fragment tail from the vertex.
+     * @param vertex the vertex tail
+     * @return the data bundle fragment tail
      */
     public String getData(String vertex) {
 
@@ -212,9 +259,9 @@ public class Graph {
     }
 
     /**
-     * This method returns all outgoing edges for the reflected vertex tail
-     * @param vertex the hash of the current reflected vertex tail
-     * @return all outgoing edges for the current reflected vertex tail
+     * Returns all outgoing edges of a vertex
+     * @param vertex the vertex tail
+     * @return all outgoing edges of the vertex
      */
     public List<String> getEdges(String vertex) {
         List<String> ret = new ArrayList<>();
@@ -230,10 +277,10 @@ public class Graph {
     }
 
     /**
-     * This method returns the next outgoing edge for the current reflected vertex tail
-     * @param vertex the hash of the current reflected vertex tail
+     * Returns the next outgoing edge of a vertex
+     * @param vertex the vertex tail
      * @param previousEdge the previous edge
-     * @return the next outgoing edge for the current reflected vertex tail
+     * @return the next outgoing edge of a vertex
      */
     public String getNextEdge(String vertex, String previousEdge) {
 
@@ -262,12 +309,20 @@ public class Graph {
 
     }
 
-    // returns all vertices for data hash
+    /**
+     * Returns all vertices which point to a specific data bundle fragment
+     * @param data the data bundle fragment tail
+     * @return the list of all vertices which point to the data bundle fragment
+     */
     public List<String> getCompoundVertex(String data) {
         return getReferencingVertices(data);
     }
 
-    // returns all vertices with edges incoming to given vertex.
+    /**
+     * Returns all vertices which point to given vertex
+     * @param vertex the vertex tail to be checked
+     * @return all vertices with edges incoming to given vertex
+     */
     public List<String> getReferencingVertices(String vertex) {
         List<String> ret = new ArrayList<>();
         for(Transaction transaction: transactionsByHash.values())
@@ -280,6 +335,13 @@ public class Graph {
         return ret;
     }
 
+    /**
+     * Checks if a vertex fragment contains a specific trunk or branch
+     * @param vertex the hash of the vertex tail
+     * @param descendant the branch or trunk that is to be checked
+     * @return true if vertex contains hash
+     * @return false if vertex does not contain hash
+     */
     public boolean isDescendant(String vertex, String descendant) {
         if(vertex.equals(descendant))
             return false;
@@ -293,6 +355,11 @@ public class Graph {
         }
     }
 
+    /**
+     * Returns next vertex which points to a specific data bundle fragment
+     * @param data the data bundle fragment tail
+     * @return the next vertex which points to the data bundle fragment
+     */
     public String getNextCompoundVertex(String data, String previousVertex) {
         List<String> vertices = getCompoundVertex(data);
         for(int i = 0; i < vertices.size(); i++)
@@ -302,6 +369,11 @@ public class Graph {
         return null;
     }
 
+    /**
+     * Returns the next vertex which points to given vertex
+     * @param vertex the vertex tail to be checked
+     * @return the next vertex with an edge incoming to a given vertex
+     */
     public String getNextReferencingVertex(String vertex, String previousVertex) {
         List<String> vertices = getReferencingVertices(vertex);
         for(int i = 0; i < vertices.size(); i++)
@@ -311,6 +383,10 @@ public class Graph {
         return null;
     }
 
+    /**
+     * Returns all transactions of the graph
+     * @return all transactions of the graph
+     */
     public Map<String,Transaction> getTransactionsByHash() {
         return transactionsByHash;
     }
