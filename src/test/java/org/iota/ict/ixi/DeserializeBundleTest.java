@@ -7,6 +7,7 @@ import org.iota.ict.utils.Trytes;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class DeserializeBundleTest extends GraphTestTemplate {
@@ -38,6 +39,25 @@ public class DeserializeBundleTest extends GraphTestTemplate {
         Assert.assertEquals(0, Trytes.toTrits(vertex1.tag())[0]);
         Assert.assertEquals(1, Trytes.toTrits(vertex1.tag())[1]);
         Assert.assertEquals(1, Trytes.toTrits(vertex1.tag())[2]);
+
+        graph.getTransactionsByHash().clear();
+        graph.deserializeAndStore(bundle);
+        Assert.assertEquals(3, graph.getTransactionsByHash().size());
+
+        List<Transaction> list = new ArrayList(graph.getTransactionsByHash().values());
+
+        Transaction transaction1 = list.get(0);
+        Transaction transaction2 = list.get(1);
+        Transaction transaction3 = list.get(2);
+
+        Assert.assertEquals(dataHash1, transaction1.trunkHash());
+        Assert.assertEquals(firstEdge1, transaction1.branchHash());
+
+        Assert.assertEquals(transaction1.hash, transaction2.trunkHash());
+        Assert.assertEquals(secondEdge1, transaction2.branchHash());
+
+        Assert.assertEquals(transaction2.hash, transaction3.trunkHash());
+        Assert.assertEquals(thirdEdge1, transaction3.branchHash());
 
     }
 
@@ -72,7 +92,7 @@ public class DeserializeBundleTest extends GraphTestTemplate {
 
         // generating bundle from both vertices
 
-        Bundle bundle = graph.serialize(transactionBuilderList2, transactionBuilderList1);
+        Bundle bundle = graph.serialize(transactionBuilderList1, transactionBuilderList2);
 
         Assert.assertEquals(2, bundle.getTransactions().size());
 
@@ -86,6 +106,41 @@ public class DeserializeBundleTest extends GraphTestTemplate {
         Assert.assertEquals(0, Trytes.toTrits(vertex2.tag())[0]);
         Assert.assertEquals(1, Trytes.toTrits(vertex2.tag())[1]);
         Assert.assertEquals(1, Trytes.toTrits(vertex2.tag())[2]);
+
+        graph.getTransactionsByHash().clear();
+        graph.deserializeAndStore(bundle);
+        Assert.assertEquals(6, graph.getTransactionsByHash().size());
+
+        List<Transaction> list = new ArrayList<>(graph.getTransactionsByHash().values());
+
+        Transaction transaction1 = list.get(0);
+        Transaction transaction2 = list.get(1);
+        Transaction transaction3 = list.get(2);
+        Transaction transaction4 = list.get(3);
+        Transaction transaction5 = list.get(4);
+        Transaction transaction6 = list.get(5);
+
+        // check vertex 1
+
+        Assert.assertEquals(dataHash1, transaction1.trunkHash());
+        Assert.assertEquals(firstEdge1, transaction1.branchHash());
+
+        Assert.assertEquals(transaction1.hash, transaction2.trunkHash());
+        Assert.assertEquals(secondEdge1, transaction2.branchHash());
+
+        Assert.assertEquals(transaction2.hash, transaction3.trunkHash());
+        Assert.assertEquals(thirdEdge1, transaction3.branchHash());
+
+        // check vertex 2
+
+        Assert.assertEquals(dataHash2, transaction4.trunkHash());
+        Assert.assertEquals(firstEdge2, transaction4.branchHash());
+
+        Assert.assertEquals(transaction4.hash, transaction5.trunkHash());
+        Assert.assertEquals(secondEdge2, transaction5.branchHash());
+
+        Assert.assertEquals(transaction5.hash, transaction6.trunkHash());
+        Assert.assertEquals(thirdEdge2, transaction6.branchHash());
 
     }
 

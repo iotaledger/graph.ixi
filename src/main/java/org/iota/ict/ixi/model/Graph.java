@@ -166,64 +166,56 @@ public class Graph {
     }
 
     /**
-     * Deserializes and adds all vertices included in a bundle to the graph.
+     * Deserializes and adds all vertices of a bundle to the graph.
      * @param bundle the bundle to deserialize
      * @return to tails of the added vertices
      */
-    public String[] deserializeAndAdd(Bundle bundle) {
+    public String[] deserializeAndStore(Bundle bundle) {
         return deserializeAndStore(bundle.getTransactions());
     }
 
     /**
-     * Deserializes and adds all vertices included in a bundle fragment to the graph.
+     * Deserializes and adds all vertices of a bundle fragment to the graph.
      * @param transactions the bundle fragment to deserialize
      * @return to tails of the added vertices
      */
     public String[] deserializeAndStore(List<Transaction> transactions) {
 
-        List<String> tails = new ArrayList<>();
-
         // Dissociate vertices from bundle
-
         List<List<Transaction>> vertices = new ArrayList<>();
 
-        boolean vertexStart = false;
-        List<Transaction> vertex = new ArrayList<>();
+        boolean vertexFragmentStart = false;
+        List<Transaction> vertexFragment = new ArrayList<>();
         for(Transaction t: transactions) {
 
             if(InputValidator.hasVertexStartFlagSet(t))
-                vertexStart = true;
+                vertexFragmentStart = true;
 
-            vertex.add(t);
+            vertexFragment.add(t);
 
             if(InputValidator.hasVertexEndFlagSet(t))
-                if(vertexStart) {
-                    vertices.add(vertex);
-                    vertexStart = false;
-                    vertex = new ArrayList<>();
+                if(vertexFragmentStart) {
+                    vertices.add(vertexFragment);
+                    vertexFragmentStart = false;
+                    vertexFragment = new ArrayList<>();
                 }
 
         }
 
+        List<String> tails = new ArrayList<>();
+
         // Get all edges of found vertices
-
-        List<List<String>> edgesOfAllVertices = new ArrayList<>();
-
-        for(List<Transaction> v: vertices) {
+        for(List<Transaction> vertex: vertices) {
 
             List<String> edges = new ArrayList<>();
-            for(Transaction t: v) {
+            for(Transaction t: vertex) {
                 for(String edge: t.signatureFragments().split("(?<=\\G.{81})"))
                     if(!edge.equals(Trytes.NULL_HASH))
                         edges.add(edge);
-
-                if(Trytes.toTrits(t.tag())[1] == 1) // check if last transaction of bundle
-                    break;
             }
 
-            String serializedVertexHash = transactions.get(0).hash;
-            edges.add(serializedVertexHash);
-            String data = transactions.get(0).extraDataDigest();
+            String data = vertex.get(0).extraDataDigest();
+            Collections.reverse(edges);
 
             tails.add(createVertex(data, edges.toArray(new String[edges.size()])));
 
