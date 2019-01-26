@@ -292,7 +292,7 @@ public class Graph {
 
             }
 
-            if(Trytes.toTrits(t.tag())[1] == 1 || t.trunkHash().equals(Trytes.NULL_HASH)) // check if last transaction of vertex
+            if(Trytes.toTrits(t.tag())[1] == 1) // check if last transaction of vertex
                 return null;
 
             vertex = t.trunkHash();

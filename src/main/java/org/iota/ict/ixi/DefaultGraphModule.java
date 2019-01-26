@@ -20,15 +20,38 @@ public class DefaultGraphModule extends IxiModule {
 
             Transaction transaction = event.getTransaction();
 
-            if(InputValidator.hasVertexStartFlagSet(transaction)) {
+            System.out.println("OTHERS");
 
-                // Check if graph contains already serialized vertex, if not add vertex to the graph
-                if(graph.getReferencingVertices(transaction.hash).size() == 0) {
+            {
+                Transaction t = transaction;
 
-                    List<Transaction> vertex = completeVertex(transaction);
-                    graph.deserializeAndStore(vertex);
+                System.out.println("HASH: " + t.hash);
+                System.out.println("ExtraData: " + t.extraDataDigest());
+                System.out.println("TRUNK: " + t.trunkHash());
+                System.out.println("BRANCH: " + t.branchHash());
+                System.out.println("SIGNATURE: " + t.signatureFragments());
+                System.out.println();
+            }
 
+            if(InputValidator.hasVertexStartFlagSet(transaction) || InputValidator.hasVertexStartAndEndFlagSet(transaction)) {
+
+                List<Transaction> vertex = completeVertex(transaction.hash);
+
+                System.out.println("FOUND");
+                {
+                    Transaction t = transaction;
+
+                    System.out.println("HASH: " + t.hash);
+                    System.out.println("ExtraData: " + t.extraDataDigest());
+                    System.out.println("TRUNK: " + t.trunkHash());
+                    System.out.println("BRANCH: " + t.branchHash());
+                    System.out.println("SIGNATURE: " + t.signatureFragments());
+                    System.out.println();
                 }
+
+                System.out.println("SIZE: "+ vertex.size());
+
+                graph.deserializeAndStore(vertex);
 
             }
         });
@@ -43,27 +66,30 @@ public class DefaultGraphModule extends IxiModule {
             ixi.submit(transaction);
     }
 
-    private List<Transaction> completeVertex(Transaction tail) {
+    private List<Transaction> completeVertex(String tail) {
 
         List<Transaction> ret = new ArrayList<>();
-        ret.add(tail);
 
         while(true) {
 
-            Transaction next = ixi.findTransactionByHash(tail.hash);
+            Transaction next = ixi.findTransactionByHash(tail);
 
             if(next == null)
-                return null;
+                return ret;
 
             ret.add(next);
 
             if(InputValidator.hasVertexEndFlagSet(next))
                 return ret;
 
-            tail = next;
+            tail = next.trunkHash();
 
         }
 
+    }
+
+    public Graph getGraph() {
+        return graph;
     }
 
 }

@@ -23,6 +23,10 @@ public class InputValidator {
         return true;
     }
 
+    public static boolean hasVertexStartAndEndFlagSet(Transaction transaction) {
+       return hasVertexStartFlagSet(transaction) && hasVertexEndFlagSet(transaction);
+    }
+
     public static boolean hasVertexStartFlagSet(Transaction transaction) {
         if(Trytes.toTrits(transaction.tag())[2] == 1)
             return true;
