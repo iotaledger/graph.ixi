@@ -5,12 +5,12 @@ import org.iota.ict.ixi.util.InputValidator;
 import org.iota.ict.model.Bundle;
 import org.iota.ict.model.Transaction;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class DefaultGraphModule extends IxiModule {
 
     private Graph graph = new Graph();
+    private Map<String, Transaction> receivedTransactionsByHash = new HashMap<>();
 
     public DefaultGraphModule(Ixi ixi) {
 
@@ -18,48 +18,29 @@ public class DefaultGraphModule extends IxiModule {
 
         ixi.addGossipListener(event -> {
 
-            Transaction transaction = event.getTransaction();
+            receivedTransactionsByHash.put(event.getTransaction().hash, event.getTransaction());
 
-            System.out.println("OTHERS");
+            for(Transaction transaction: new ArrayList<>(receivedTransactionsByHash.values())) {
 
-            {
-                Transaction t = transaction;
-
-                System.out.println("HASH: " + t.hash);
-                System.out.println("ExtraData: " + t.extraDataDigest());
-                System.out.println("TRUNK: " + t.trunkHash());
-                System.out.println("BRANCH: " + t.branchHash());
-                System.out.println("SIGNATURE: " + t.signatureFragments());
-                System.out.println();
-            }
-
-            if(InputValidator.hasVertexStartFlagSet(transaction) || InputValidator.hasVertexStartAndEndFlagSet(transaction)) {
-
-                List<Transaction> vertex = completeVertex(transaction.hash);
-
-                System.out.println("FOUND");
-                {
-                    Transaction t = transaction;
-
-                    System.out.println("HASH: " + t.hash);
-                    System.out.println("ExtraData: " + t.extraDataDigest());
-                    System.out.println("TRUNK: " + t.trunkHash());
-                    System.out.println("BRANCH: " + t.branchHash());
-                    System.out.println("SIGNATURE: " + t.signatureFragments());
-                    System.out.println();
+                if(InputValidator.hasVertexStartFlagSet(transaction) || InputValidator.hasVertexStartAndEndFlagSet(transaction)) {
+                    List<Transaction> vertex = completeVertex(transaction.hash);
+                    graph.deserializeAndStore(vertex);
+                    for(Transaction t: vertex)
+                        receivedTransactionsByHash.remove(t);
                 }
 
-                System.out.println("SIZE: "+ vertex.size());
-
-                graph.deserializeAndStore(vertex);
-
             }
+
         });
 
     }
 
     @Override
     public void run() { ; }
+
+    public Graph getGraph() {
+        return graph;
+    }
 
     public void submit(Bundle bundle) {
         for(Transaction transaction: bundle.getTransactions())
@@ -72,10 +53,10 @@ public class DefaultGraphModule extends IxiModule {
 
         while(true) {
 
-            Transaction next = ixi.findTransactionByHash(tail);
+            Transaction next = receivedTransactionsByHash.get(tail);
 
             if(next == null)
-                return ret;
+                return new ArrayList<>();
 
             ret.add(next);
 
@@ -86,10 +67,6 @@ public class DefaultGraphModule extends IxiModule {
 
         }
 
-    }
-
-    public Graph getGraph() {
-        return graph;
     }
 
 }
