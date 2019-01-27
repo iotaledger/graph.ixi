@@ -19,53 +19,74 @@ public class DefaultGraphModule extends IxiModule {
         ixi.addGossipListener(event -> {
 
             receivedTransactionsByHash.put(event.getTransaction().hash, event.getTransaction());
-
-            for(Transaction transaction: new ArrayList<>(receivedTransactionsByHash.values())) {
-
-                if(InputValidator.hasVertexStartFlagSet(transaction) || InputValidator.hasVertexStartAndEndFlagSet(transaction)) {
-                    List<Transaction> vertex = completeVertex(transaction.hash);
-                    graph.deserializeAndStore(vertex);
-                    for(Transaction t: vertex)
-                        receivedTransactionsByHash.remove(t);
-                }
-
-            }
+            List<Transaction> vertex = completeVertex();
+            graph.deserializeAndStore(vertex);
 
         });
 
     }
 
+    /**
+     * This method will be executed once graph.ixi got injected into Ict.
+     */
     @Override
-    public void run() { ; }
+    public void run() {
+        System.out.println("graph.ixi loaded!");
+    }
 
+    /**
+     * Returns the module graph.
+     * @return the graph connected to this module
+     */
     public Graph getGraph() {
         return graph;
     }
 
+    /**
+     * Sends a bundle to the neighbors.
+     * @param bundle the bundle that is to be sent
+     */
     public void submit(Bundle bundle) {
         for(Transaction transaction: bundle.getTransactions())
             ixi.submit(transaction);
     }
 
-    private List<Transaction> completeVertex(String tail) {
+    /**
+     * Tries to complete received vertex by its tail transaction.
+     * @return the completed vertex bundle fragment.
+     */
+    private List<Transaction> completeVertex() {
 
-        List<Transaction> ret = new ArrayList<>();
+        for(Transaction tail: new ArrayList<>(receivedTransactionsByHash.values())) {
 
-        while(true) {
+            if(InputValidator.hasVertexStartFlagSet(tail) || InputValidator.hasVertexStartAndEndFlagSet(tail)) {
 
-            Transaction next = receivedTransactionsByHash.get(tail);
+                List<Transaction> ret = new ArrayList<>();
+                ret.add(tail);
+                String currentTail = tail.trunkHash();
 
-            if(next == null)
-                return new ArrayList<>();
+                while(true) {
 
-            ret.add(next);
+                    Transaction next = receivedTransactionsByHash.get(currentTail);
 
-            if(InputValidator.hasVertexEndFlagSet(next))
-                return ret;
+                    if(next == null)
+                        return new ArrayList<>();
 
-            tail = next.trunkHash();
+                    ret.add(next);
 
+                    if(InputValidator.hasVertexEndFlagSet(next)) {
+                        for(Transaction t: ret)
+                            receivedTransactionsByHash.remove(t.hash);
+                        return ret;
+                    }
+
+                    currentTail = next.trunkHash();
+
+                }
+            }
         }
+
+        return new ArrayList<>();
 
     }
 

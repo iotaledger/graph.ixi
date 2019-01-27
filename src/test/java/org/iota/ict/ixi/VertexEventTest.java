@@ -68,6 +68,106 @@ public class VertexEventTest extends GraphTestTemplate {
 
     }
 
+    @Test
+    public void receiveMultipleVerticesFromSameBundleTest() {
+
+        EditableProperties properties1 = new EditableProperties().host("localhost").port(1337).minForwardDelay(0).maxForwardDelay(10).guiEnabled(false);
+        Ict ict1 = new Ict(properties1.toFinal());
+
+        EditableProperties properties2 = new EditableProperties().host("localhost").port(1338).minForwardDelay(0).maxForwardDelay(10).guiEnabled(false);
+        Ict ict2 = new Ict(properties2.toFinal());
+
+        addNeighborToIct(ict1,ict2);
+        addNeighborToIct(ict2,ict1);
+
+        // register graph module to Ict1
+        DefaultGraphModule graphModule = new DefaultGraphModule(ict1);
+
+        // create first vertex
+        String dataHash1 = "DATA9HASH999999999999999999999999999999999999999999999999999999999999999999999999";
+        String firstEdge1 = "FIRST9EDGE99999999999999999999999999999999999999999999999999999999999999999999999";
+
+        String firstTranscationHash1 = graph.startVertex(dataHash1, firstEdge1);
+        String[] edges1 = VertexGenerator.generateRandomEdges(79);
+
+        String currentTail1 = graph.addEdges(firstTranscationHash1, edges1);
+
+        String lastEdge1 = "LAST9HASH999999999999999999999999999999999999999999999999999999999999999999999999";
+        String tail1 = graph.addEdge(currentTail1, lastEdge1);
+
+        // create second vertex
+        String dataHash2 = "ANOTHER9DATA9HASH9999999999999999999999999999999999999999999999999999999999999999";
+        String firstEdge2 = "ANOTHER9FIRST9EDGE999999999999999999999999999999999999999999999999999999999999999";
+
+        String firstTranscationHash2 = graph.startVertex(dataHash2, firstEdge2);
+        String[] edges2 = VertexGenerator.generateRandomEdges(79);
+
+        String currentTail2 = graph.addEdges(firstTranscationHash2, edges2);
+
+        String lastEdge2 = "ANOTHER9LAST9HASH9999999999999999999999999999999999999999999999999999999999999999";
+        String tail2 = graph.addEdge(currentTail2, lastEdge2);
+
+        List<TransactionBuilder> transactionBuilderList1 = graph.finalizeVertex(tail1);
+        List<TransactionBuilder> transactionBuilderList2 = graph.finalizeVertex(tail2);
+        List<TransactionBuilder> transactionBuilderList = new ArrayList<>();
+
+        // merge
+        transactionBuilderList.addAll(transactionBuilderList1);
+        transactionBuilderList.addAll(transactionBuilderList2);
+
+        Bundle bundle = graph.serialize(transactionBuilderList);
+
+        // send vertex from Ict2 to Ict1
+        for(Transaction transaction: bundle.getTransactions())
+            ict2.submit(transaction);
+
+        // wait few seconds to avoid premature termination of this test
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        List<Transaction> vertices = new ArrayList<>(graphModule.getGraph().getTransactionsByHash().values());
+
+        Assert.assertEquals(162, vertices.size());
+
+        // check if vertices got added properly to the module graph
+
+        if(vertices.get(0).trunkHash().equals(dataHash1)) {
+
+            Assert.assertEquals(firstEdge1, vertices.get(0).branchHash());
+            Assert.assertEquals(lastEdge1, vertices.get(80).branchHash());
+            Assert.assertEquals(true, graphModule.getGraph().isDescendant(vertices.get(80).hash, dataHash1));
+
+            Assert.assertEquals(dataHash2, vertices.get(81).trunkHash());
+            Assert.assertEquals(firstEdge2, vertices.get(81).branchHash());
+            Assert.assertEquals(lastEdge2, vertices.get(161).branchHash());
+            Assert.assertEquals(true, graphModule.getGraph().isDescendant(vertices.get(161).hash, dataHash2));
+
+            Assert.assertEquals(false, graphModule.getGraph().isDescendant(vertices.get(161).hash, dataHash1));
+
+        } else {
+
+            Assert.assertEquals(dataHash2, vertices.get(0).trunkHash());
+            Assert.assertEquals(firstEdge2, vertices.get(0).branchHash());
+            Assert.assertEquals(lastEdge2, vertices.get(80).branchHash());
+            Assert.assertEquals(true, graphModule.getGraph().isDescendant(vertices.get(80).hash, dataHash2));
+
+            Assert.assertEquals(dataHash1, vertices.get(81).trunkHash());
+            Assert.assertEquals(firstEdge1, vertices.get(81).branchHash());
+            Assert.assertEquals(lastEdge1, vertices.get(161).branchHash());
+            Assert.assertEquals(true, graphModule.getGraph().isDescendant(vertices.get(161).hash, dataHash1));
+
+            Assert.assertEquals(false, graphModule.getGraph().isDescendant(vertices.get(161).hash, dataHash2));
+
+        }
+
+        ict2.terminate();
+        ict1.terminate();
+
+    }
+
     private static void addNeighborToIct(Ict ict, Ict neighbor) {
         EditableProperties properties = ict.getProperties().toEditable();
         List<InetSocketAddress> neighbors = properties.neighbors();
