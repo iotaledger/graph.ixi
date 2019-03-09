@@ -13,6 +13,6 @@ It extends the core client with the functionality to link arbitrary
 data with any number of other data pieces. As a result, it circumvents the usual
 limit of transactions that can be referenced.
 
-Paper of graph.ixi: [paper](https://github.com/iotaledger/graph.ixi/docs/graph.ixi.pdf)<br>
+Paper of graph.ixi: [paper](https://github.com/iotaledger/graph.ixi/blob/master/docs/graph.ixi.pdf)<br>
 Specification of graph.ixi: [spec](https://github.com/iotaledger/omega-docs/blob/master/ixi/graph/Spec.md)
 
