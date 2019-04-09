@@ -1,10 +1,10 @@
 package org.iota.ict.ixi.model;
 
 import org.iota.ict.ixi.util.InputValidator;
-import org.iota.ict.model.Bundle;
-import org.iota.ict.model.BundleBuilder;
-import org.iota.ict.model.Transaction;
-import org.iota.ict.model.TransactionBuilder;
+import org.iota.ict.model.bundle.Bundle;
+import org.iota.ict.model.bundle.BundleBuilder;
+import org.iota.ict.model.transaction.Transaction;
+import org.iota.ict.model.transaction.TransactionBuilder;
 import org.iota.ict.utils.Trytes;
 
 import java.util.*;

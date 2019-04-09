@@ -2,26 +2,32 @@ package org.iota.ict.ixi;
 
 import org.iota.ict.ixi.model.Graph;
 import org.iota.ict.ixi.util.InputValidator;
-import org.iota.ict.model.Bundle;
-import org.iota.ict.model.Transaction;
+import org.iota.ict.model.bundle.Bundle;
+import org.iota.ict.model.transaction.Transaction;
+import org.iota.ict.network.gossip.GossipEvent;
+import org.iota.ict.network.gossip.GossipListener;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-public class DefaultGraphModule extends IxiModule {
+public class GraphModule extends IxiModule {
 
     private Graph graph = new Graph();
     private Map<String, Transaction> receivedTransactionsByHash = new HashMap<>();
 
-    public DefaultGraphModule(Ixi ixi) {
+    public GraphModule(Ixi ixi) {
 
         super(ixi);
 
-        ixi.addGossipListener(event -> {
-
-            receivedTransactionsByHash.put(event.getTransaction().hash, event.getTransaction());
-            List<Transaction> vertex = completeVertex();
-            graph.deserializeAndStore(vertex);
-
+        ixi.addListener(new GossipListener.Implementation() {
+            @Override
+            public void onReceive(GossipEvent effect) {
+                receivedTransactionsByHash.put(effect.getTransaction().hash, effect.getTransaction());
+                List<Transaction> vertex = completeVertex();
+                graph.deserializeAndStore(vertex);
+            }
         });
 
     }

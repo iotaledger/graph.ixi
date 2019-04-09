@@ -1,6 +1,7 @@
 package org.iota.ict.ixi;
 
-import org.iota.ict.model.Transaction;
+
+import org.iota.ict.model.transaction.Transaction;
 import org.iota.ict.utils.Trytes;
 import org.junit.Assert;
 import org.junit.Test;

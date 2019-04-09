@@ -4,7 +4,7 @@ import org.iota.ict.Ict;
 import org.iota.ict.utils.properties.Properties;
 
 /**
- * This class is just for testing graph.ixi, so you don't have to run Ict manually.
+ * This class is just for testing Graph.ixi, so you don't have to run Ict manually.
  * */
 public class Main {
 
@@ -12,7 +12,7 @@ public class Main {
 
         Properties properties = new Properties();
         Ict ict = new Ict(properties.toFinal());
-        new Thread(new DefaultGraphModule(ict)).start();
+        new Thread(new GraphModule(ict)).start();
 
     }
 

@@ -1,7 +1,7 @@
 package org.iota.ict.ixi.utils;
 
 import org.iota.ict.ixi.model.Graph;
-import org.iota.ict.model.TransactionBuilder;
+import org.iota.ict.model.transaction.TransactionBuilder;
 
 import java.security.SecureRandom;
 import java.util.ArrayList;

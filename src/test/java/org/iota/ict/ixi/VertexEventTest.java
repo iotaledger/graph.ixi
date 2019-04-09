@@ -2,16 +2,16 @@ package org.iota.ict.ixi;
 
 import org.iota.ict.Ict;
 import org.iota.ict.ixi.utils.VertexGenerator;
-import org.iota.ict.model.Bundle;
-import org.iota.ict.model.Transaction;
-import org.iota.ict.model.TransactionBuilder;
+import org.iota.ict.model.bundle.Bundle;
+import org.iota.ict.model.transaction.Transaction;
+import org.iota.ict.model.transaction.TransactionBuilder;
 import org.iota.ict.utils.properties.EditableProperties;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class VertexEventTest extends GraphTestTemplate {
 
@@ -28,7 +28,7 @@ public class VertexEventTest extends GraphTestTemplate {
         addNeighborToIct(ict2,ict1);
 
         // register graph module to Ict1
-        DefaultGraphModule graphModule = new DefaultGraphModule(ict1);
+        GraphModule graphModule = new GraphModule(ict1);
 
         // create vertex
         String dataHash = "DATA9HASH999999999999999999999999999999999999999999999999999999999999999999999999";
@@ -81,7 +81,7 @@ public class VertexEventTest extends GraphTestTemplate {
         addNeighborToIct(ict2,ict1);
 
         // register graph module to Ict1
-        DefaultGraphModule graphModule = new DefaultGraphModule(ict1);
+        GraphModule graphModule = new GraphModule(ict1);
 
         // create first vertex
         String dataHash1 = "DATA9HASH999999999999999999999999999999999999999999999999999999999999999999999999";
@@ -170,8 +170,8 @@ public class VertexEventTest extends GraphTestTemplate {
 
     private static void addNeighborToIct(Ict ict, Ict neighbor) {
         EditableProperties properties = ict.getProperties().toEditable();
-        List<InetSocketAddress> neighbors = properties.neighbors();
-        neighbors.add(neighbor.getAddress());
+        Set<String> neighbors = properties.neighbors();
+        neighbors.add(neighbor.getAddress().getHostName() + ":" + neighbor.getAddress().getPort());
         properties.neighbors(neighbors);
         ict.updateProperties(properties.toFinal());
     }
