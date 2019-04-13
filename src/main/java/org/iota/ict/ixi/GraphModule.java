@@ -37,7 +37,7 @@ public class GraphModule extends IxiModule {
      */
     @Override
     public void run() {
-        System.out.println("graph.ixi loaded!");
+        System.out.println("Graph.ixi loaded!");
     }
 
     /**

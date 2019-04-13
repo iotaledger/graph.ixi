@@ -12,6 +12,7 @@ import java.util.*;
 public class Graph {
 
     private Map<String, Transaction> transactionsByHash = Collections.synchronizedMap(new LinkedHashMap());
+    private Set<String> vertexTails = new LinkedHashSet<>();
 
     /**
      * Creates a vertex with trunk pointing to the data and branch pointing to the outgoing vertex tails that are to be referenced.
@@ -43,6 +44,7 @@ public class Graph {
         transactionBuilder.tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 0, 1, 0 }), Transaction.Field.TAG.tryteLength);
         Transaction transaction = transactionBuilder.build();
         transactionsByHash.put(transaction.hash, transaction);
+        vertexTails.add(transaction.hash);
         return transaction.hash;
     }
 
@@ -60,6 +62,8 @@ public class Graph {
         transactionBuilder.branchHash = edge;
         Transaction transaction = transactionBuilder.build();
         transactionsByHash.put(transaction.hash, transaction);
+        vertexTails.remove(midVertexHash);
+        vertexTails.add(transaction.hash);
         return transaction.hash;
     }
 
@@ -72,6 +76,7 @@ public class Graph {
     public String addEdges(String midVertexHash, String[] edges) {
         if(!InputValidator.isValidHash(midVertexHash) || !InputValidator.areValidHashes(edges))
             return null;
+        vertexTails.remove(midVertexHash);
         for(String edge: edges) {
             TransactionBuilder transactionBuilder = new TransactionBuilder();
             transactionBuilder.trunkHash = midVertexHash;
@@ -80,6 +85,7 @@ public class Graph {
             transactionsByHash.put(transaction.hash, transaction);
             midVertexHash = transaction.hash;
         }
+        vertexTails.add(midVertexHash);
         return midVertexHash;
     }
 
@@ -302,28 +308,15 @@ public class Graph {
     }
 
     /**
-     * Returns all vertices which point to a specific data bundle fragment
-     * @param data the data bundle fragment tail
-     * @return the list of all vertices which point to the data bundle fragment
-     */
-    public List<String> getCompoundVertex(String data) {
-        return getReferencingVertices(data);
-    }
-
-    /**
      * Returns all vertices which point to given vertex
      * @param vertex the vertex tail to be checked
      * @return all vertices with edges incoming to given vertex
      */
     public List<String> getReferencingVertices(String vertex) {
         List<String> ret = new ArrayList<>();
-        for(Transaction transaction: transactionsByHash.values())
-            if(isDescendant(transaction.hash, vertex)) {
-                ret.add(transaction.hash);
-                for(String descendant: new ArrayList<>(ret))
-                    if(isDescendant(transaction.hash, descendant))
-                        ret.remove(descendant);
-            }
+        for(String tail: vertexTails)
+            if(isDescendant(tail, vertex))
+                ret.add(tail);
         return ret;
     }
 
@@ -348,39 +341,19 @@ public class Graph {
     }
 
     /**
-     * Returns next vertex which points to a specific data bundle fragment
-     * @param data the data bundle fragment tail
-     * @return the next vertex which points to the data bundle fragment
-     */
-    public String getNextCompoundVertex(String data, String previousVertex) {
-        List<String> vertices = getCompoundVertex(data);
-        for(int i = 0; i < vertices.size(); i++)
-            if(previousVertex.equals(vertices.get(i)))
-                if(i + 1 < vertices.size())
-                    return vertices.get(i + 1);
-        return null;
-    }
-
-    /**
-     * Returns the next vertex which points to given vertex
-     * @param vertex the vertex tail to be checked
-     * @return the next vertex with an edge incoming to a given vertex
-     */
-    public String getNextReferencingVertex(String vertex, String previousVertex) {
-        List<String> vertices = getReferencingVertices(vertex);
-        for(int i = 0; i < vertices.size(); i++)
-            if(previousVertex.equals(vertices.get(i)))
-                if(i + 1 < vertices.size())
-                    return vertices.get(i + 1);
-        return null;
-    }
-
-    /**
      * Returns all transactions of the graph
      * @return all transactions of the graph
      */
     public Map<String,Transaction> getTransactionsByHash() {
         return transactionsByHash;
+    }
+
+    /**
+     * Returns all tails of the vertices
+     * @return all tails of the vertices
+     */
+    public Set<String> getVertexTails() {
+        return vertexTails;
     }
 
 }
