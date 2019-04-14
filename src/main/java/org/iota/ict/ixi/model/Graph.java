@@ -11,8 +11,8 @@ import java.util.*;
 
 public class Graph {
 
-    private Map<String, Transaction> transactionsByHash = Collections.synchronizedMap(new LinkedHashMap());
-    private Set<String> vertexTails = new LinkedHashSet<>();
+    private Map<String, Transaction> transactionsByHash = new LinkedHashMap();
+    private Set<String> vertices = new LinkedHashSet<>();
 
     /**
      * Creates a vertex with trunk pointing to the data and branch pointing to the outgoing vertex tails that are to be referenced.
@@ -44,7 +44,7 @@ public class Graph {
         transactionBuilder.tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 0, 1, 0 }), Transaction.Field.TAG.tryteLength);
         Transaction transaction = transactionBuilder.build();
         transactionsByHash.put(transaction.hash, transaction);
-        vertexTails.add(transaction.hash);
+        vertices.add(transaction.hash);
         return transaction.hash;
     }
 
@@ -62,8 +62,8 @@ public class Graph {
         transactionBuilder.branchHash = edge;
         Transaction transaction = transactionBuilder.build();
         transactionsByHash.put(transaction.hash, transaction);
-        vertexTails.remove(midVertexHash);
-        vertexTails.add(transaction.hash);
+        vertices.remove(midVertexHash);
+        vertices.add(transaction.hash);
         return transaction.hash;
     }
 
@@ -76,7 +76,7 @@ public class Graph {
     public String addEdges(String midVertexHash, String[] edges) {
         if(!InputValidator.isValidHash(midVertexHash) || !InputValidator.areValidHashes(edges))
             return null;
-        vertexTails.remove(midVertexHash);
+        vertices.remove(midVertexHash);
         for(String edge: edges) {
             TransactionBuilder transactionBuilder = new TransactionBuilder();
             transactionBuilder.trunkHash = midVertexHash;
@@ -85,7 +85,7 @@ public class Graph {
             transactionsByHash.put(transaction.hash, transaction);
             midVertexHash = transaction.hash;
         }
-        vertexTails.add(midVertexHash);
+        vertices.add(midVertexHash);
         return midVertexHash;
     }
 
@@ -314,8 +314,8 @@ public class Graph {
      */
     public List<String> getReferencingVertices(String vertex) {
         List<String> ret = new ArrayList<>();
-        for(String tail: vertexTails)
-            if(isDescendant(tail, vertex))
+        for(String tail: vertices)
+            if(isReferencing(tail, vertex))
                 ret.add(tail);
         return ret;
     }
@@ -323,18 +323,18 @@ public class Graph {
     /**
      * Checks if a vertex fragment contains a specific trunk or branch
      * @param vertex the hash of the vertex tail
-     * @param descendant the branch or trunk that is to be checked
+     * @param neighbor the branch or trunk that is to be checked
      * @return true if vertex contains hash
      * @return false if vertex does not contain hash
      */
-    public boolean isDescendant(String vertex, String descendant) {
-        if(vertex.equals(descendant))
+    public boolean isReferencing(String vertex, String neighbor) {
+        if(vertex.equals(neighbor))
             return false;
         while(true) {
             Transaction transaction = transactionsByHash.get(vertex);
             if(transaction == null)
                 return false;
-            if(transaction.trunkHash().equals(descendant) || transaction.branchHash().equals(descendant))
+            if(transaction.trunkHash().equals(neighbor) || transaction.branchHash().equals(neighbor))
                 return true;
             vertex = transaction.trunkHash();
         }
@@ -349,11 +349,11 @@ public class Graph {
     }
 
     /**
-     * Returns all tails of the vertices
+     * Returns all vertices
      * @return all tails of the vertices
      */
-    public Set<String> getVertexTails() {
-        return vertexTails;
+    public Set<String> getVertices() {
+        return vertices;
     }
 
 }

@@ -4,7 +4,7 @@ import org.iota.ict.ixi.utils.VertexGenerator;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class IsDescendantTest extends GraphTestTemplate {
+public class IsReferencingTest extends GraphTestTemplate {
 
     @Test
     public void isDescendantTest() {
@@ -16,10 +16,10 @@ public class IsDescendantTest extends GraphTestTemplate {
         String secondEdge = "SECOND9HASH9999999999999999999999999999999999999999999999999999999999999999999999";
         String secondTranscationHash = graph.addEdge(firstTranscationHash, secondEdge);
 
-        Assert.assertEquals(false, graph.isDescendant(firstTranscationHash,firstTranscationHash));
-        Assert.assertEquals(false, graph.isDescendant(firstTranscationHash,secondTranscationHash));
-        Assert.assertEquals(true, graph.isDescendant(secondTranscationHash,firstTranscationHash));
-        Assert.assertEquals(false, graph.isDescendant(secondTranscationHash,secondTranscationHash));
+        Assert.assertEquals(false, graph.isReferencing(firstTranscationHash,firstTranscationHash));
+        Assert.assertEquals(false, graph.isReferencing(firstTranscationHash,secondTranscationHash));
+        Assert.assertEquals(true, graph.isReferencing(secondTranscationHash,firstTranscationHash));
+        Assert.assertEquals(false, graph.isReferencing(secondTranscationHash,secondTranscationHash));
 
     }
 
@@ -37,7 +37,7 @@ public class IsDescendantTest extends GraphTestTemplate {
         String lastEdge = "LAST9HASH999999999999999999999999999999999999999999999999999999999999999999999999";
         String tail = graph.addEdge(currentTail, lastEdge);
 
-        Assert.assertEquals(true, graph.isDescendant(tail, firstTranscationHash));
+        Assert.assertEquals(true, graph.isReferencing(tail, firstTranscationHash));
 
     }
 

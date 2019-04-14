@@ -138,28 +138,28 @@ public class VertexEventTest extends GraphTestTemplate {
 
             Assert.assertEquals(firstEdge1, vertices.get(0).branchHash());
             Assert.assertEquals(lastEdge1, vertices.get(80).branchHash());
-            Assert.assertEquals(true, graphModule.getGraph().isDescendant(vertices.get(80).hash, dataHash1));
+            Assert.assertEquals(true, graphModule.getGraph().isReferencing(vertices.get(80).hash, dataHash1));
 
             Assert.assertEquals(dataHash2, vertices.get(81).trunkHash());
             Assert.assertEquals(firstEdge2, vertices.get(81).branchHash());
             Assert.assertEquals(lastEdge2, vertices.get(161).branchHash());
-            Assert.assertEquals(true, graphModule.getGraph().isDescendant(vertices.get(161).hash, dataHash2));
+            Assert.assertEquals(true, graphModule.getGraph().isReferencing(vertices.get(161).hash, dataHash2));
 
-            Assert.assertEquals(false, graphModule.getGraph().isDescendant(vertices.get(161).hash, dataHash1));
+            Assert.assertEquals(false, graphModule.getGraph().isReferencing(vertices.get(161).hash, dataHash1));
 
         } else {
 
             Assert.assertEquals(dataHash2, vertices.get(0).trunkHash());
             Assert.assertEquals(firstEdge2, vertices.get(0).branchHash());
             Assert.assertEquals(lastEdge2, vertices.get(80).branchHash());
-            Assert.assertEquals(true, graphModule.getGraph().isDescendant(vertices.get(80).hash, dataHash2));
+            Assert.assertEquals(true, graphModule.getGraph().isReferencing(vertices.get(80).hash, dataHash2));
 
             Assert.assertEquals(dataHash1, vertices.get(81).trunkHash());
             Assert.assertEquals(firstEdge1, vertices.get(81).branchHash());
             Assert.assertEquals(lastEdge1, vertices.get(161).branchHash());
-            Assert.assertEquals(true, graphModule.getGraph().isDescendant(vertices.get(161).hash, dataHash1));
+            Assert.assertEquals(true, graphModule.getGraph().isReferencing(vertices.get(161).hash, dataHash1));
 
-            Assert.assertEquals(false, graphModule.getGraph().isDescendant(vertices.get(161).hash, dataHash2));
+            Assert.assertEquals(false, graphModule.getGraph().isReferencing(vertices.get(161).hash, dataHash2));
 
         }
 

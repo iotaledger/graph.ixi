@@ -1,5 +1,7 @@
 package org.iota.ict.ixi;
 
+import org.iota.ict.eee.call.EEEFunction;
+import org.iota.ict.eee.call.FunctionEnvironment;
 import org.iota.ict.ixi.model.Graph;
 import org.iota.ict.ixi.util.InputValidator;
 import org.iota.ict.model.bundle.Bundle;
@@ -16,6 +18,9 @@ public class GraphModule extends IxiModule {
 
     private Graph graph = new Graph();
     private Map<String, Transaction> receivedTransactionsByHash = new HashMap<>();
+
+    private final EEEFunction startVertex = new EEEFunction(new FunctionEnvironment("Graph.ixi", "startVertex"));
+    private final EEEFunction addEdge = new EEEFunction(new FunctionEnvironment("Graph.ixi", "addEdge"));
 
     public GraphModule(Ixi ixi) {
 
@@ -37,7 +42,43 @@ public class GraphModule extends IxiModule {
      */
     @Override
     public void run() {
+
         System.out.println("Graph.ixi loaded!");
+
+        new Thread(() -> {
+            while (isRunning()) {
+                try {
+                    processStartVertexRequest(startVertex.requestQueue.take());
+                } catch (InterruptedException e) {
+                    if(isRunning()) throw new RuntimeException(e);
+                }
+            }
+        }).start();
+
+        new Thread(() -> {
+            while (isRunning()) {
+                try {
+                    processAddEdgeRequest(addEdge.requestQueue.take());
+                } catch (InterruptedException e) {
+                    if(isRunning()) throw new RuntimeException(e);
+                }
+            }
+        }).start();
+
+    }
+
+    public void processStartVertexRequest(EEEFunction.Request request) {
+        String data = request.argument.split(";")[0];
+        String edge = request.argument.split(";")[1];
+        String ret = graph.startVertex(data, edge);
+        request.submitReturn(ixi, ret);
+    }
+
+    public void processAddEdgeRequest(EEEFunction.Request request) {
+        String midVertexHash = request.argument.split(";")[0];
+        String edge = request.argument.split(";")[1];
+        String ret = graph.addEdge(midVertexHash, edge);
+        request.submitReturn(ixi, ret);
     }
 
     /**
