@@ -323,18 +323,18 @@ public class Graph {
     /**
      * Checks if a vertex fragment contains a specific trunk or branch
      * @param vertex the hash of the vertex tail
-     * @param neighbor the branch or trunk that is to be checked
+     * @param hash the branch or trunk that is to be checked
      * @return true if vertex contains hash
      * @return false if vertex does not contain hash
      */
-    public boolean isReferencing(String vertex, String neighbor) {
-        if(vertex.equals(neighbor))
+    public boolean isReferencing(String vertex, String hash) {
+        if(vertex.equals(hash))
             return false;
         while(true) {
             Transaction transaction = transactionsByHash.get(vertex);
             if(transaction == null)
                 return false;
-            if(transaction.trunkHash().equals(neighbor) || transaction.branchHash().equals(neighbor))
+            if(transaction.trunkHash().equals(hash) || transaction.branchHash().equals(hash))
                 return true;
             vertex = transaction.trunkHash();
         }

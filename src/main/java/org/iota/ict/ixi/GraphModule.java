@@ -19,8 +19,15 @@ public class GraphModule extends IxiModule {
     private Graph graph = new Graph();
     private Map<String, Transaction> receivedTransactionsByHash = new HashMap<>();
 
+    private final EEEFunction createVertex = new EEEFunction(new FunctionEnvironment("Graph.ixi", "createVertex"));
     private final EEEFunction startVertex = new EEEFunction(new FunctionEnvironment("Graph.ixi", "startVertex"));
     private final EEEFunction addEdge = new EEEFunction(new FunctionEnvironment("Graph.ixi", "addEdge"));
+    private final EEEFunction addEdges = new EEEFunction(new FunctionEnvironment("Graph.ixi", "addEdges"));
+    private final EEEFunction getData = new EEEFunction(new FunctionEnvironment("Graph.ixi", "getData"));
+    private final EEEFunction getEdges = new EEEFunction(new FunctionEnvironment("Graph.ixi", "getEdges"));
+    private final EEEFunction getNextEdge = new EEEFunction(new FunctionEnvironment("Graph.ixi", "getNextEdge"));
+    private final EEEFunction getReferencingVertices = new EEEFunction(new FunctionEnvironment("Graph.ixi", "getReferencingVertices"));
+    private final EEEFunction isReferencing = new EEEFunction(new FunctionEnvironment("Graph.ixi", "isReferencing"));
 
     public GraphModule(Ixi ixi) {
 
@@ -35,6 +42,16 @@ public class GraphModule extends IxiModule {
             }
         });
 
+        ixi.addListener(createVertex);
+        ixi.addListener(startVertex);
+        ixi.addListener(addEdge);
+        ixi.addListener(addEdges);
+        ixi.addListener(getData);
+        ixi.addListener(getEdges);
+        ixi.addListener(getNextEdge);
+        ixi.addListener(getReferencingVertices);
+        ixi.addListener(isReferencing);
+
     }
 
     /**
@@ -43,7 +60,15 @@ public class GraphModule extends IxiModule {
     @Override
     public void run() {
 
-        System.out.println("Graph.ixi loaded!");
+        new Thread(() -> {
+            while (isRunning()) {
+                try {
+                    processCreateVertexRequest(createVertex.requestQueue.take());
+                } catch (InterruptedException e) {
+                    if(isRunning()) throw new RuntimeException(e);
+                }
+            }
+        }).start();
 
         new Thread(() -> {
             while (isRunning()) {
@@ -65,19 +90,146 @@ public class GraphModule extends IxiModule {
             }
         }).start();
 
+        new Thread(() -> {
+            while (isRunning()) {
+                try {
+                    processAddEdgesRequest(addEdges.requestQueue.take());
+                } catch (InterruptedException e) {
+                    if(isRunning()) throw new RuntimeException(e);
+                }
+            }
+        }).start();
+
+        new Thread(() -> {
+            while (isRunning()) {
+                try {
+                    processGetData(getData.requestQueue.take());
+                } catch (InterruptedException e) {
+                    if(isRunning()) throw new RuntimeException(e);
+                }
+            }
+        }).start();
+
+        new Thread(() -> {
+            while (isRunning()) {
+                try {
+                    processGetEdges(getEdges.requestQueue.take());
+                } catch (InterruptedException e) {
+                    if(isRunning()) throw new RuntimeException(e);
+                }
+            }
+        }).start();
+
+        new Thread(() -> {
+            while (isRunning()) {
+                try {
+                    processGetNextEdge(getNextEdge.requestQueue.take());
+                } catch (InterruptedException e) {
+                    if(isRunning()) throw new RuntimeException(e);
+                }
+            }
+        }).start();
+
+        new Thread(() -> {
+            while (isRunning()) {
+                try {
+                    processGetReferencingVertices(getReferencingVertices.requestQueue.take());
+                } catch (InterruptedException e) {
+                    if(isRunning()) throw new RuntimeException(e);
+                }
+            }
+        }).start();
+
+        new Thread(() -> {
+            while (isRunning()) {
+                try {
+                    processIsReferencing(isReferencing.requestQueue.take());
+                } catch (InterruptedException e) {
+                    if(isRunning()) throw new RuntimeException(e);
+                }
+            }
+        }).start();
+
+        System.out.println("Graph.ixi loaded!");
+
+    }
+
+    public void processCreateVertexRequest(EEEFunction.Request request) {
+        String argument = request.argument;
+        String data = argument.split(";")[0];
+        String[] edges = argument.substring(argument.indexOf(";")+1).split(";");
+        String ret = graph.createVertex(data, edges);
+        request.submitReturn(ixi, ret);
     }
 
     public void processStartVertexRequest(EEEFunction.Request request) {
-        String data = request.argument.split(";")[0];
-        String edge = request.argument.split(";")[1];
+        String argument = request.argument;
+        String data = argument.split(";")[0];
+        String edge = argument.split(";")[1];
         String ret = graph.startVertex(data, edge);
         request.submitReturn(ixi, ret);
     }
 
     public void processAddEdgeRequest(EEEFunction.Request request) {
-        String midVertexHash = request.argument.split(";")[0];
-        String edge = request.argument.split(";")[1];
+        String argument = request.argument;
+        String midVertexHash = argument.split(";")[0];
+        String edge = argument.split(";")[1];
         String ret = graph.addEdge(midVertexHash, edge);
+        request.submitReturn(ixi, ret);
+    }
+
+    public void processAddEdgesRequest(EEEFunction.Request request) {
+        String argument = request.argument;
+        String midVertexHash = argument.split(";")[0];
+        String[] edges = argument.substring(argument.indexOf(";")+1).split(";");
+        String ret = graph.addEdges(midVertexHash, edges);
+        request.submitReturn(ixi, ret);
+    }
+
+    public void processGetData(EEEFunction.Request request) {
+        String vertex = request.argument;
+        String ret = graph.getData(vertex);
+        request.submitReturn(ixi, ret);
+    }
+
+    public void processGetEdges(EEEFunction.Request request) {
+        String vertex = request.argument;
+        List<String> edges = graph.getEdges(vertex);
+        String ret = "";
+        for(int i = 0; i < edges.size(); i++) {
+            ret += edges.get(i);
+            if(i < edges.size() - 1)
+                ret += ";";
+        }
+        request.submitReturn(ixi, ret);
+    }
+
+    public void processGetNextEdge(EEEFunction.Request request) {
+        String argument = request.argument;
+        String vertex = argument.split(";")[0];
+        String previousEdge = argument.split(";")[1];
+        String ret = graph.getNextEdge(vertex, previousEdge);
+        request.submitReturn(ixi, ret);
+    }
+
+    public void processGetReferencingVertices(EEEFunction.Request request) {
+        String vertex = request.argument;
+        List<String> vertices = graph.getReferencingVertices(vertex);
+        String ret = "";
+        for(int i = 0; i < vertices.size(); i++) {
+            ret += vertices.get(i);
+            if(i < vertices.size() - 1)
+                ret += ";";
+        }
+        request.submitReturn(ixi, ret);
+    }
+
+    public void processIsReferencing(EEEFunction.Request request) {
+        String argument = request.argument;
+        String vertex = argument.split(";")[0];
+        String neighbor = argument.split(";")[1];
+        boolean isReferencing = graph.isReferencing(vertex, neighbor);
+        String ret = isReferencing + "";
         request.submitReturn(ixi, ret);
     }
 
