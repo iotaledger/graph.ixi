@@ -1,5 +1,6 @@
 package org.iota.ict.ixi;
 
+import org.iota.ict.ixi.model.Pair;
 import org.iota.ict.model.bundle.Bundle;
 import org.iota.ict.model.transaction.Transaction;
 import org.iota.ict.model.transaction.TransactionBuilder;
@@ -30,7 +31,7 @@ public class DeserializeBundleTest extends GraphTestTemplate {
 
         // generating bundle
 
-        Bundle bundle = graph.serialize(transactionBuilderList1);
+        Bundle bundle = graph.serialize(new Pair<>(thirdTranscationHash1, transactionBuilderList1));
 
         Assert.assertEquals(1, bundle.getTransactions().size());
 
@@ -92,7 +93,7 @@ public class DeserializeBundleTest extends GraphTestTemplate {
 
         // generating bundle from both vertices
 
-        Bundle bundle = graph.serialize(transactionBuilderList1, transactionBuilderList2);
+        Bundle bundle = graph.serialize(new Pair(thirdTranscationHash1, transactionBuilderList1), new Pair(thirdTranscationHash2, transactionBuilderList2));
 
         Assert.assertEquals(2, bundle.getTransactions().size());
 

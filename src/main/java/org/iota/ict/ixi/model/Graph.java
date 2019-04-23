@@ -12,7 +12,8 @@ import java.util.*;
 public class Graph {
 
     private Map<String, Transaction> transactionsByHash = new LinkedHashMap();
-    private Set<String> vertices = new LinkedHashSet<>();
+    private Set<String> tails = new LinkedHashSet<>();
+    private Map<String, String> serializedVertices = new LinkedHashMap<>();
 
     /**
      * Creates a vertex with trunk pointing to the data and branch pointing to the outgoing vertex tails that are to be referenced.
@@ -44,66 +45,66 @@ public class Graph {
         transactionBuilder.tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 0, 1, 0 }), Transaction.Field.TAG.tryteLength);
         Transaction transaction = transactionBuilder.build();
         transactionsByHash.put(transaction.hash, transaction);
-        vertices.add(transaction.hash);
+        tails.add(transaction.hash);
         return transaction.hash;
     }
 
     /**
      * Continues a vertex with branch pointing to the next vertex that is to be referenced.
-     * @param midVertexHash the vertex tail to be continued
+     * @param currentVertexTail the vertex tail to be continued
      * @param edge the vertex tail that is to be referenced
      * @return the new vertex tail
      */
-    public String addEdge(String midVertexHash, String edge) {
-        if(!InputValidator.isValidHash(midVertexHash) || !InputValidator.isValidHash(edge))
+    public String addEdge(String currentVertexTail, String edge) {
+        if(!InputValidator.isValidHash(currentVertexTail) || !InputValidator.isValidHash(edge))
             return null;
         TransactionBuilder transactionBuilder = new TransactionBuilder();
-        transactionBuilder.trunkHash = midVertexHash;
+        transactionBuilder.trunkHash = currentVertexTail;
         transactionBuilder.branchHash = edge;
         Transaction transaction = transactionBuilder.build();
         transactionsByHash.put(transaction.hash, transaction);
-        vertices.remove(midVertexHash);
-        vertices.add(transaction.hash);
+        tails.remove(currentVertexTail);
+        tails.add(transaction.hash);
         return transaction.hash;
     }
 
     /**
      * Continues a vertex with the branches pointing to the vertices that are to be referenced.
-     * @param midVertexHash the vertex tail to be continued
+     * @param currentVertexTail the vertex tail to be continued
      * @param edges the vertex tails to be referenced
      * @return the new vertex tail
      */
-    public String addEdges(String midVertexHash, String[] edges) {
-        if(!InputValidator.isValidHash(midVertexHash) || !InputValidator.areValidHashes(edges))
+    public String addEdges(String currentVertexTail, String[] edges) {
+        if(!InputValidator.isValidHash(currentVertexTail) || !InputValidator.areValidHashes(edges))
             return null;
-        vertices.remove(midVertexHash);
+        tails.remove(currentVertexTail);
         for(String edge: edges) {
             TransactionBuilder transactionBuilder = new TransactionBuilder();
-            transactionBuilder.trunkHash = midVertexHash;
+            transactionBuilder.trunkHash = currentVertexTail;
             transactionBuilder.branchHash = edge;
             Transaction transaction = transactionBuilder.build();
             transactionsByHash.put(transaction.hash, transaction);
-            midVertexHash = transaction.hash;
+            currentVertexTail = transaction.hash;
         }
-        vertices.add(midVertexHash);
-        return midVertexHash;
+        tails.add(currentVertexTail);
+        return currentVertexTail;
     }
 
     /**
      * Finalizes a vertex ready to put into a bundle.
-     * @param reflectedTail the vertex tail to be finalized
+     * @param currentVertexTail the vertex tail to be finalized
      * @return the bundle fragment ready to put into a bundle
      */
-    public List<TransactionBuilder> finalizeVertex(String reflectedTail) {
+    public List<TransactionBuilder> finalizeVertex(String currentVertexTail) {
 
-        if(!InputValidator.isValidHash(reflectedTail))
+        if(!InputValidator.isValidHash(currentVertexTail))
             return null;
 
         List<String> edges = new LinkedList<>();
 
         while(true) {
 
-            Transaction t = transactionsByHash.get(reflectedTail);
+            Transaction t = transactionsByHash.get(currentVertexTail);
 
             if(t == null)
                 break;
@@ -114,11 +115,11 @@ public class Graph {
             String edge = t.branchHash();
             edges.add(edge);
 
-            reflectedTail = t.trunkHash();
+            currentVertexTail = t.trunkHash();
 
         }
 
-        Transaction head = transactionsByHash.get(reflectedTail);
+        Transaction head = transactionsByHash.get(currentVertexTail);
         String data = head.trunkHash();
         String firstEdge = head.branchHash();
         edges.add(firstEdge);
@@ -158,18 +159,52 @@ public class Graph {
 
     /**
      * Serializes bundle fragments ready to attach to the Tangle.
-     * @param vertices the bundle fragments to serialize
+     * @param finalizedVertexPair the bundle fragments mapped with the virtual vertex tail to serialize
      * @return the bundle ready to attach to the Tangle
      */
-    public Bundle serialize(List<TransactionBuilder> ... vertices) {
+    public Bundle serialize(Pair<String, List<TransactionBuilder>>... finalizedVertexPair) {
+
+        // put all transactions in a collection
         List<TransactionBuilder> collection = new ArrayList<>();
-        for(List<TransactionBuilder> transactionBuilderList: vertices)
-            collection.addAll(transactionBuilderList);
+        for (Pair<String, List<TransactionBuilder>> pair : finalizedVertexPair)
+            collection.addAll(pair.value);
+
+        // sort transactions
         Collections.reverse(collection);
+
+        // build bundle
         BundleBuilder bundleBuilder = new BundleBuilder();
         bundleBuilder.append(collection);
-        return bundleBuilder.build();
+        Bundle bundle = bundleBuilder.build();
+
+        // get bundle transactions
+        List<Transaction> bundleTransactions = bundle.getTransactions();
+
+        // map serialized vertex tail with virtual vertex tail
+
+        for (Pair<String, List<TransactionBuilder>> pair : finalizedVertexPair) {
+
+            // get virtual vertex tail
+            String virtualTail = pair.key;
+
+            // get transaction count
+            int count = pair.value.size();
+
+            // get serialized vertex tail
+            String serializedTail = bundleTransactions.get(0).hash;
+
+            // map serialized vertex tail with virtual vertex tail
+            serializedVertices.put(pair.key, serializedTail);
+
+            // skip to next vertex
+            bundleTransactions = bundleTransactions.subList(0, count);
+
+        }
+
+        return bundle;
+
     }
+
 
     /**
      * Deserializes and adds all vertices of a bundle to the graph.
@@ -314,7 +349,7 @@ public class Graph {
      */
     public List<String> getReferencingVertices(String vertex) {
         List<String> ret = new ArrayList<>();
-        for(String tail: vertices)
+        for(String tail: tails)
             if(isReferencing(tail, vertex))
                 ret.add(tail);
         return ret;
@@ -352,8 +387,8 @@ public class Graph {
      * Returns all vertices
      * @return all tails of the vertices
      */
-    public Set<String> getVertices() {
-        return vertices;
+    public Set<String> getTails() {
+        return tails;
     }
 
 }

@@ -1,6 +1,7 @@
 package org.iota.ict.ixi;
 
 import org.iota.ict.Ict;
+import org.iota.ict.ixi.model.Pair;
 import org.iota.ict.ixi.utils.VertexGenerator;
 import org.iota.ict.model.bundle.Bundle;
 import org.iota.ict.model.transaction.Transaction;
@@ -43,7 +44,7 @@ public class VertexEventTest extends GraphTestTemplate {
         String tail = graph.addEdge(currentTail, lastEdge);
 
         List<TransactionBuilder> transactionBuilderList = graph.finalizeVertex(tail);
-        Bundle bundle = graph.serialize(transactionBuilderList);
+        Bundle bundle = graph.serialize(new Pair<>(tail, transactionBuilderList));
 
         // send vertex from Ict2 to Ict1
         for(Transaction transaction: bundle.getTransactions())
@@ -109,13 +110,8 @@ public class VertexEventTest extends GraphTestTemplate {
 
         List<TransactionBuilder> transactionBuilderList1 = graph.finalizeVertex(tail1);
         List<TransactionBuilder> transactionBuilderList2 = graph.finalizeVertex(tail2);
-        List<TransactionBuilder> transactionBuilderList = new ArrayList<>();
 
-        // merge
-        transactionBuilderList.addAll(transactionBuilderList1);
-        transactionBuilderList.addAll(transactionBuilderList2);
-
-        Bundle bundle = graph.serialize(transactionBuilderList);
+        Bundle bundle = graph.serialize(new Pair(tail1, transactionBuilderList1), new Pair(tail2, transactionBuilderList2));
 
         // send vertex from Ict2 to Ict1
         for(Transaction transaction: bundle.getTransactions())
