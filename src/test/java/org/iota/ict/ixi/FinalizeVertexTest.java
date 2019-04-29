@@ -19,11 +19,11 @@ public class FinalizeVertexTest extends GraphTestTemplate {
         String secondEdge = "SECOND9HASH9999999999999999999999999999999999999999999999999999999999999999999999";
         String thirdEdge = "THIRD9HASH99999999999999999999999999999999999999999999999999999999999999999999999";
 
-        String firstTranscationHash = graph.startVertex(dataHash, firstEdge);
-        String secondTranscationHash = graph.addEdge(firstTranscationHash, secondEdge);
-        String thirdTranscationHash = graph.addEdge(secondTranscationHash, thirdEdge);
+        String firstTranscationHash = graphModule1.getGraph().startVertex(dataHash, firstEdge);
+        String secondTranscationHash = graphModule1.getGraph().addEdge(firstTranscationHash, secondEdge);
+        String thirdTranscationHash = graphModule1.getGraph().addEdge(secondTranscationHash, thirdEdge);
 
-        List<TransactionBuilder> transactionBuilderList = graph.finalizeVertex(thirdTranscationHash);
+        List<TransactionBuilder> transactionBuilderList = graphModule1.getGraph().finalizeVertex(thirdTranscationHash);
         TransactionBuilder b = transactionBuilderList.get(0);
 
         Assert.assertEquals(b.extraDataDigest, dataHash);
@@ -39,15 +39,15 @@ public class FinalizeVertexTest extends GraphTestTemplate {
         String dataHash = "DATA9HASH999999999999999999999999999999999999999999999999999999999999999999999999";
         String firstEdge = "FIRST9EDGE99999999999999999999999999999999999999999999999999999999999999999999999";
 
-        String firstTranscationHash = graph.startVertex(dataHash, firstEdge);
+        String firstTranscationHash = graphModule1.getGraph().startVertex(dataHash, firstEdge);
         String[] edges = VertexGenerator.generateRandomEdges(80);
 
-        String currentTail = graph.addEdges(firstTranscationHash, edges);
+        String currentTail = graphModule1.getGraph().addEdges(firstTranscationHash, edges);
 
         String lastEdge = "LAST9HASH999999999999999999999999999999999999999999999999999999999999999999999999";
-        String tail = graph.addEdge(currentTail, lastEdge);
+        String tail = graphModule1.getGraph().addEdge(currentTail, lastEdge);
 
-        List<TransactionBuilder> transactionBuilderList = graph.finalizeVertex(tail);
+        List<TransactionBuilder> transactionBuilderList = graphModule1.getGraph().finalizeVertex(tail);
 
         TransactionBuilder firstTransaction = transactionBuilderList.get(0);
         TransactionBuilder secondTransaction = transactionBuilderList.get(1);

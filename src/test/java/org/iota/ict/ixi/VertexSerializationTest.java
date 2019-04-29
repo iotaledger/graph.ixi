@@ -20,17 +20,17 @@ public class VertexSerializationTest extends GraphTestTemplate {
         String dataHash = "DATA9HASH999999999999999999999999999999999999999999999999999999999999999999999999";
         String firstEdge = "FIRST9EDGE99999999999999999999999999999999999999999999999999999999999999999999999";
 
-        String firstTranscationHash = graph.startVertex(dataHash, firstEdge);
+        String firstTranscationHash = graphModule1.getGraph().startVertex(dataHash, firstEdge);
         String[] edges = VertexGenerator.generateRandomEdges(80);
 
-        String currentTail = graph.addEdges(firstTranscationHash, edges);
+        String currentTail = graphModule1.getGraph().addEdges(firstTranscationHash, edges);
 
         String lastEdge = "LAST9HASH999999999999999999999999999999999999999999999999999999999999999999999999";
-        String tail = graph.addEdge(currentTail, lastEdge);
+        String tail = graphModule1.getGraph().addEdge(currentTail, lastEdge);
 
-        List<TransactionBuilder> transactionBuilderList = graph.finalizeVertex(tail);
+        List<TransactionBuilder> transactionBuilderList = graphModule1.getGraph().finalizeVertex(tail);
 
-        Bundle bundle = graph.serialize(new Pair<>(tail, transactionBuilderList));
+        Bundle bundle = graphModule1.serialize(new Pair<>(tail, transactionBuilderList));
 
         Transaction firstTransaction = bundle.getTransactions().get(0);
         Transaction secondTransaction = bundle.getTransactions().get(1);
@@ -65,30 +65,30 @@ public class VertexSerializationTest extends GraphTestTemplate {
         String dataHash1 = "DATA9HASH999999999999999999999999999999999999999999999999999999999999999999999999";
         String firstEdge1 = "FIRST9EDGE99999999999999999999999999999999999999999999999999999999999999999999999";
 
-        String firstTranscationHash1 = graph.startVertex(dataHash1, firstEdge1);
+        String firstTranscationHash1 = graphModule1.getGraph().startVertex(dataHash1, firstEdge1);
         String[] edges1 = VertexGenerator.generateRandomEdges(80);
 
-        String currentTail1 = graph.addEdges(firstTranscationHash1, edges1);
+        String currentTail1 = graphModule1.getGraph().addEdges(firstTranscationHash1, edges1);
 
         String lastEdge1 = "LAST9HASH999999999999999999999999999999999999999999999999999999999999999999999999";
-        String tail1 = graph.addEdge(currentTail1, lastEdge1);
+        String tail1 = graphModule1.getGraph().addEdge(currentTail1, lastEdge1);
 
         // create second vertex
         String dataHash2 = "ANOTHER9DATA9HASH9999999999999999999999999999999999999999999999999999999999999999";
         String firstEdge2 = "ANOTHER9FIRST9EDGE999999999999999999999999999999999999999999999999999999999999999";
 
-        String firstTranscationHash2 = graph.startVertex(dataHash2, firstEdge2);
+        String firstTranscationHash2 = graphModule1.getGraph().startVertex(dataHash2, firstEdge2);
         String[] edges2 = VertexGenerator.generateRandomEdges(80);
 
-        String currentTail2 = graph.addEdges(firstTranscationHash2, edges2);
+        String currentTail2 = graphModule1.getGraph().addEdges(firstTranscationHash2, edges2);
 
         String lastEdge2 = "ANOTHER9LAST9HASH9999999999999999999999999999999999999999999999999999999999999999";
-        String tail2 = graph.addEdge(currentTail2, lastEdge2);
+        String tail2 = graphModule1.getGraph().addEdge(currentTail2, lastEdge2);
 
-        List<TransactionBuilder> transactionBuilderList1 = graph.finalizeVertex(tail1);
-        List<TransactionBuilder> transactionBuilderList2 = graph.finalizeVertex(tail2);
+        List<TransactionBuilder> transactionBuilderList1 = graphModule1.getGraph().finalizeVertex(tail1);
+        List<TransactionBuilder> transactionBuilderList2 = graphModule1.getGraph().finalizeVertex(tail2);
 
-        Bundle bundle = graph.serialize(new Pair(tail1, transactionBuilderList1), new Pair(tail2, transactionBuilderList2));
+        Bundle bundle = graphModule1.serialize(new Pair(tail1, transactionBuilderList1), new Pair(tail2, transactionBuilderList2));
 
         for(Transaction t: bundle.getTransactions()) {
 

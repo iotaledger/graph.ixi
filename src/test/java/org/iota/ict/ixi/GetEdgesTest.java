@@ -14,11 +14,11 @@ public class GetEdgesTest extends GraphTestTemplate {
         String dataHash = "DATA9HASH999999999999999999999999999999999999999999999999999999999999999999999999";
         String firstEdge = "FIRST9EDGE99999999999999999999999999999999999999999999999999999999999999999999999";
 
-        String firstTranscationHash = graph.startVertex(dataHash, firstEdge);
+        String firstTranscationHash = graphModule1.getGraph().startVertex(dataHash, firstEdge);
         String[] edges = VertexGenerator.generateRandomEdges(80);
-        String tail = graph.addEdges(firstTranscationHash, edges);
+        String tail = graphModule1.getGraph().addEdges(firstTranscationHash, edges);
 
-        List<String> e = graph.getEdges(tail);
+        List<String> e = graphModule1.getGraph().getEdges(tail);
 
         Assert.assertEquals(firstEdge, e.get(e.size()-1));
 

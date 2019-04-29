@@ -23,15 +23,15 @@ public class DeserializeBundleTest extends GraphTestTemplate {
         String secondEdge1 = "SECOND9HASH9999999999999999999999999999999999999999999999999999999999999999999999";
         String thirdEdge1 = "THIRD9HASH99999999999999999999999999999999999999999999999999999999999999999999999";
 
-        String firstTranscationHash1 = graph.startVertex(dataHash1, firstEdge1);
-        String secondTranscationHash1 = graph.addEdge(firstTranscationHash1, secondEdge1);
-        String thirdTranscationHash1 = graph.addEdge(secondTranscationHash1, thirdEdge1);
+        String firstTranscationHash1 = graphModule1.getGraph().startVertex(dataHash1, firstEdge1);
+        String secondTranscationHash1 = graphModule1.getGraph().addEdge(firstTranscationHash1, secondEdge1);
+        String thirdTranscationHash1 = graphModule1.getGraph().addEdge(secondTranscationHash1, thirdEdge1);
 
-        List<TransactionBuilder> transactionBuilderList1 = graph.finalizeVertex(thirdTranscationHash1);
+        List<TransactionBuilder> transactionBuilderList1 = graphModule1.getGraph().finalizeVertex(thirdTranscationHash1);
 
         // generating bundle
 
-        Bundle bundle = graph.serialize(new Pair<>(thirdTranscationHash1, transactionBuilderList1));
+        Bundle bundle = graphModule1.serialize(new Pair<>(thirdTranscationHash1, transactionBuilderList1));
 
         Assert.assertEquals(1, bundle.getTransactions().size());
 
@@ -41,11 +41,11 @@ public class DeserializeBundleTest extends GraphTestTemplate {
         Assert.assertEquals(1, Trytes.toTrits(vertex1.tag())[1]);
         Assert.assertEquals(1, Trytes.toTrits(vertex1.tag())[2]);
 
-        graph.getTransactionsByHash().clear();
-        graph.deserializeAndStore(bundle);
-        Assert.assertEquals(3, graph.getTransactionsByHash().size());
+        graphModule1.getGraph().getTransactionsByHash().clear();
+        graphModule1.deserializeAndStore(bundle);
+        Assert.assertEquals(3, graphModule1.getGraph().getTransactionsByHash().size());
 
-        List<Transaction> list = new ArrayList(graph.getTransactionsByHash().values());
+        List<Transaction> list = new ArrayList(graphModule1.getGraph().getTransactionsByHash().values());
 
         Transaction transaction1 = list.get(0);
         Transaction transaction2 = list.get(1);
@@ -72,11 +72,11 @@ public class DeserializeBundleTest extends GraphTestTemplate {
         String secondEdge1 = "SECOND9HASH9999999999999999999999999999999999999999999999999999999999999999999999";
         String thirdEdge1 = "THIRD9HASH99999999999999999999999999999999999999999999999999999999999999999999999";
 
-        String firstTranscationHash1 = graph.startVertex(dataHash1, firstEdge1);
-        String secondTranscationHash1 = graph.addEdge(firstTranscationHash1, secondEdge1);
-        String thirdTranscationHash1 = graph.addEdge(secondTranscationHash1, thirdEdge1);
+        String firstTranscationHash1 = graphModule1.getGraph().startVertex(dataHash1, firstEdge1);
+        String secondTranscationHash1 = graphModule1.getGraph().addEdge(firstTranscationHash1, secondEdge1);
+        String thirdTranscationHash1 = graphModule1.getGraph().addEdge(secondTranscationHash1, thirdEdge1);
 
-        List<TransactionBuilder> transactionBuilderList1 = graph.finalizeVertex(thirdTranscationHash1);
+        List<TransactionBuilder> transactionBuilderList1 = graphModule1.getGraph().finalizeVertex(thirdTranscationHash1);
 
         // create second vertex
 
@@ -85,15 +85,15 @@ public class DeserializeBundleTest extends GraphTestTemplate {
         String secondEdge2 = "ANOTHER9SECOND9HASH99999999999999999999999999999999999999999999999999999999999999";
         String thirdEdge2 = "ANOTHER9THIRD9HASH999999999999999999999999999999999999999999999999999999999999999";
 
-        String firstTranscationHash2 = graph.startVertex(dataHash2, firstEdge2);
-        String secondTranscationHash2 = graph.addEdge(firstTranscationHash2, secondEdge2);
-        String thirdTranscationHash2 = graph.addEdge(secondTranscationHash2, thirdEdge2);
+        String firstTranscationHash2 = graphModule1.getGraph().startVertex(dataHash2, firstEdge2);
+        String secondTranscationHash2 = graphModule1.getGraph().addEdge(firstTranscationHash2, secondEdge2);
+        String thirdTranscationHash2 = graphModule1.getGraph().addEdge(secondTranscationHash2, thirdEdge2);
 
-        List<TransactionBuilder> transactionBuilderList2 = graph.finalizeVertex(thirdTranscationHash2);
+        List<TransactionBuilder> transactionBuilderList2 = graphModule1.getGraph().finalizeVertex(thirdTranscationHash2);
 
         // generating bundle from both vertices
 
-        Bundle bundle = graph.serialize(new Pair(thirdTranscationHash1, transactionBuilderList1), new Pair(thirdTranscationHash2, transactionBuilderList2));
+        Bundle bundle = graphModule1.serialize(new Pair(thirdTranscationHash1, transactionBuilderList1), new Pair(thirdTranscationHash2, transactionBuilderList2));
 
         Assert.assertEquals(2, bundle.getTransactions().size());
 
@@ -108,11 +108,11 @@ public class DeserializeBundleTest extends GraphTestTemplate {
         Assert.assertEquals(1, Trytes.toTrits(vertex2.tag())[1]);
         Assert.assertEquals(1, Trytes.toTrits(vertex2.tag())[2]);
 
-        graph.getTransactionsByHash().clear();
-        graph.deserializeAndStore(bundle);
-        Assert.assertEquals(6, graph.getTransactionsByHash().size());
+        graphModule1.getGraph().getTransactionsByHash().clear();
+        graphModule1.deserializeAndStore(bundle);
+        Assert.assertEquals(6, graphModule1.getGraph().getTransactionsByHash().size());
 
-        List<Transaction> list = new ArrayList<>(graph.getTransactionsByHash().values());
+        List<Transaction> list = new ArrayList<>(graphModule1.getGraph().getTransactionsByHash().values());
 
         Transaction transaction1 = list.get(0);
         Transaction transaction2 = list.get(1);

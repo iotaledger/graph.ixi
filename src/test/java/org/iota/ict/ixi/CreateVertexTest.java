@@ -1,6 +1,5 @@
 package org.iota.ict.ixi;
 
-
 import org.iota.ict.model.transaction.Transaction;
 import org.iota.ict.utils.Trytes;
 import org.junit.Assert;
@@ -14,8 +13,8 @@ public class CreateVertexTest extends GraphTestTemplate {
         String dataHash = "DATA9HASH999999999999999999999999999999999999999999999999999999999999999999999999";
         String firstEdge = "FIRST9EDGE99999999999999999999999999999999999999999999999999999999999999999999999";
 
-        String headHash = graph.createVertex(dataHash, new String[] { firstEdge });
-        Transaction head = graph.getTransactionsByHash().get(headHash);
+        String headHash = graphModule1.getGraph().createVertex(dataHash, new String[] { firstEdge });
+        Transaction head = graphModule1.getGraph().getTransactionsByHash().get(headHash);
 
         Assert.assertEquals(dataHash, head.trunkHash());
         Assert.assertEquals(firstEdge, head.branchHash());
@@ -29,15 +28,15 @@ public class CreateVertexTest extends GraphTestTemplate {
         String dataHash = null;
         String firstEdge = "FIRST9EDGE99999999999999999999999999999999999999999999999999999999999999999999999";
 
-        String headHash = graph.createVertex(dataHash, new String[] { firstEdge });
+        String headHash = graphModule1.getGraph().createVertex(dataHash, new String[] { firstEdge });
         Assert.assertNull(headHash);
 
         dataHash = "DATA9HASH";
 
-        headHash = graph.createVertex(dataHash, new String[] { firstEdge });
+        headHash = graphModule1.getGraph().createVertex(dataHash, new String[] { firstEdge });
         Assert.assertNull(headHash);
 
-        Assert.assertEquals(0, graph.getTransactionsByHash().size());
+        Assert.assertEquals(0, graphModule1.getGraph().getTransactionsByHash().size());
 
     }
 
@@ -47,15 +46,15 @@ public class CreateVertexTest extends GraphTestTemplate {
         String dataHash = "DATA9HASH999999999999999999999999999999999999999999999999999999999999999999999999";
         String firstEdge = null;
 
-        String headHash = graph.createVertex(dataHash, new String[] { firstEdge });
+        String headHash = graphModule1.getGraph().createVertex(dataHash, new String[] { firstEdge });
         Assert.assertNull(headHash);
 
         firstEdge = "FIRST9EDGE";
 
-        headHash = graph.createVertex(dataHash, new String[] { firstEdge });
+        headHash = graphModule1.getGraph().createVertex(dataHash, new String[] { firstEdge });
         Assert.assertNull(headHash);
 
-        Assert.assertEquals(0, graph.getTransactionsByHash().size());
+        Assert.assertEquals(0, graphModule1.getGraph().getTransactionsByHash().size());
 
     }
 

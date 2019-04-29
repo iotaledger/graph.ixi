@@ -8,11 +8,13 @@ import org.iota.ict.utils.properties.Properties;
  * */
 public class Main {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
 
         Properties properties = new Properties();
         Ict ict = new Ict(properties.toFinal());
-        new Thread(new GraphModule(ict)).start();
+        ict.getModuleHolder().initAllModules();
+        ict.getModuleHolder().loadVirtualModule(GraphModule.class, "Graph.ixi");
+        ict.getModuleHolder().startAllModules();
 
     }
 

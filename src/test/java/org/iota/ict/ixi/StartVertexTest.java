@@ -13,8 +13,8 @@ public class StartVertexTest extends GraphTestTemplate {
         String dataHash = "DATA9HASH999999999999999999999999999999999999999999999999999999999999999999999999";
         String firstEdge = "FIRST9EDGE99999999999999999999999999999999999999999999999999999999999999999999999";
 
-        String headHash = graph.startVertex(dataHash,firstEdge);
-        Transaction head = graph.getTransactionsByHash().get(headHash);
+        String headHash = graphModule1.getGraph().startVertex(dataHash,firstEdge);
+        Transaction head = graphModule1.getGraph().getTransactionsByHash().get(headHash);
 
         Assert.assertEquals(dataHash, head.trunkHash());
         Assert.assertEquals(firstEdge, head.branchHash());
@@ -28,15 +28,15 @@ public class StartVertexTest extends GraphTestTemplate {
         String dataHash = null;
         String firstEdge = "FIRST9EDGE99999999999999999999999999999999999999999999999999999999999999999999999";
 
-        String headHash = graph.startVertex(dataHash,firstEdge);
+        String headHash = graphModule1.getGraph().startVertex(dataHash,firstEdge);
         Assert.assertNull(headHash);
 
         dataHash = "DATA9HASH";
 
-        headHash = graph.startVertex(dataHash,firstEdge);
+        headHash = graphModule1.getGraph().startVertex(dataHash,firstEdge);
         Assert.assertNull(headHash);
 
-        Assert.assertEquals(0, graph.getTransactionsByHash().size());
+        Assert.assertEquals(0, graphModule1.getGraph().getTransactionsByHash().size());
 
     }
 
@@ -46,15 +46,15 @@ public class StartVertexTest extends GraphTestTemplate {
         String dataHash = "DATA9HASH999999999999999999999999999999999999999999999999999999999999999999999999";
         String firstEdge = null;
 
-        String headHash = graph.startVertex(dataHash,firstEdge);
+        String headHash = graphModule1.getGraph().startVertex(dataHash,firstEdge);
         Assert.assertNull(headHash);
 
         firstEdge = "FIRST9EDGE";
 
-        headHash = graph.startVertex(dataHash,firstEdge);
+        headHash = graphModule1.getGraph().startVertex(dataHash,firstEdge);
         Assert.assertNull(headHash);
 
-        Assert.assertEquals(0, graph.getTransactionsByHash().size());
+        Assert.assertEquals(0, graphModule1.getGraph().getTransactionsByHash().size());
 
     }
 

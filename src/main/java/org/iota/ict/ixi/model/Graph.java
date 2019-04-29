@@ -1,8 +1,6 @@
 package org.iota.ict.ixi.model;
 
 import org.iota.ict.ixi.util.InputValidator;
-import org.iota.ict.model.bundle.Bundle;
-import org.iota.ict.model.bundle.BundleBuilder;
 import org.iota.ict.model.transaction.Transaction;
 import org.iota.ict.model.transaction.TransactionBuilder;
 import org.iota.ict.utils.Trytes;
@@ -12,8 +10,8 @@ import java.util.*;
 public class Graph {
 
     private Map<String, Transaction> transactionsByHash = new LinkedHashMap();
-    private Set<String> tails = new LinkedHashSet<>();
-    private Map<String, String> serializedVertices = new LinkedHashMap<>();
+    private Set<String> virtualTails = new LinkedHashSet<>();
+    private Map<String, String> serializedTailsByVirtualTails = new LinkedHashMap<>();
 
     /**
      * Creates a vertex with trunk pointing to the data and branch pointing to the outgoing vertex tails that are to be referenced.
@@ -45,7 +43,7 @@ public class Graph {
         transactionBuilder.tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 0, 1, 0 }), Transaction.Field.TAG.tryteLength);
         Transaction transaction = transactionBuilder.build();
         transactionsByHash.put(transaction.hash, transaction);
-        tails.add(transaction.hash);
+        virtualTails.add(transaction.hash);
         return transaction.hash;
     }
 
@@ -63,8 +61,8 @@ public class Graph {
         transactionBuilder.branchHash = edge;
         Transaction transaction = transactionBuilder.build();
         transactionsByHash.put(transaction.hash, transaction);
-        tails.remove(currentVertexTail);
-        tails.add(transaction.hash);
+        virtualTails.remove(currentVertexTail);
+        virtualTails.add(transaction.hash);
         return transaction.hash;
     }
 
@@ -77,7 +75,7 @@ public class Graph {
     public String addEdges(String currentVertexTail, String[] edges) {
         if(!InputValidator.isValidHash(currentVertexTail) || !InputValidator.areValidHashes(edges))
             return null;
-        tails.remove(currentVertexTail);
+        virtualTails.remove(currentVertexTail);
         for(String edge: edges) {
             TransactionBuilder transactionBuilder = new TransactionBuilder();
             transactionBuilder.trunkHash = currentVertexTail;
@@ -86,7 +84,7 @@ public class Graph {
             transactionsByHash.put(transaction.hash, transaction);
             currentVertexTail = transaction.hash;
         }
-        tails.add(currentVertexTail);
+        virtualTails.add(currentVertexTail);
         return currentVertexTail;
     }
 
@@ -155,115 +153,6 @@ public class Graph {
         transactions.add(t);
 
         return transactions;
-    }
-
-    /**
-     * Serializes bundle fragments ready to attach to the Tangle.
-     * @param finalizedVertexPair the bundle fragments mapped with the virtual vertex tail to serialize
-     * @return the bundle ready to attach to the Tangle
-     */
-    public Bundle serialize(Pair<String, List<TransactionBuilder>>... finalizedVertexPair) {
-
-        // put all transactions in a collection
-        List<TransactionBuilder> collection = new ArrayList<>();
-        for (Pair<String, List<TransactionBuilder>> pair : finalizedVertexPair)
-            collection.addAll(pair.value);
-
-        // sort transactions
-        Collections.reverse(collection);
-
-        // build bundle
-        BundleBuilder bundleBuilder = new BundleBuilder();
-        bundleBuilder.append(collection);
-        Bundle bundle = bundleBuilder.build();
-
-        // get bundle transactions
-        List<Transaction> bundleTransactions = bundle.getTransactions();
-
-        // map serialized vertex tail with virtual vertex tail
-
-        for (Pair<String, List<TransactionBuilder>> pair : finalizedVertexPair) {
-
-            // get virtual vertex tail
-            String virtualTail = pair.key;
-
-            // get transaction count
-            int count = pair.value.size();
-
-            // get serialized vertex tail
-            String serializedTail = bundleTransactions.get(0).hash;
-
-            // map serialized vertex tail with virtual vertex tail
-            serializedVertices.put(pair.key, serializedTail);
-
-            // skip to next vertex
-            bundleTransactions = bundleTransactions.subList(0, count);
-
-        }
-
-        return bundle;
-
-    }
-
-
-    /**
-     * Deserializes and adds all vertices of a bundle to the graph.
-     * @param bundle the bundle to deserialize
-     * @return to tails of the added vertices
-     */
-    public String[] deserializeAndStore(Bundle bundle) {
-        return deserializeAndStore(bundle.getTransactions());
-    }
-
-    /**
-     * Deserializes and adds all vertices of a bundle fragment to the graph.
-     * @param transactions the bundle fragment to deserialize
-     * @return to tails of the added vertices
-     */
-    public String[] deserializeAndStore(List<Transaction> transactions) {
-
-        // Dissociate vertices from bundle
-        List<List<Transaction>> vertices = new ArrayList<>();
-
-        boolean vertexFragmentStart = false;
-        List<Transaction> vertexFragment = new ArrayList<>();
-        for(Transaction t: transactions) {
-
-            if(InputValidator.hasVertexStartFlagSet(t))
-                vertexFragmentStart = true;
-
-            vertexFragment.add(t);
-
-            if(InputValidator.hasVertexEndFlagSet(t))
-                if(vertexFragmentStart) {
-                    vertices.add(vertexFragment);
-                    vertexFragmentStart = false;
-                    vertexFragment = new ArrayList<>();
-                }
-
-        }
-
-        List<String> tails = new ArrayList<>();
-
-        // Get all edges of found vertices
-        for(List<Transaction> vertex: vertices) {
-
-            List<String> edges = new ArrayList<>();
-            for(Transaction t: vertex) {
-                for(String edge: t.signatureFragments().split("(?<=\\G.{81})"))
-                    if(!edge.equals(Trytes.NULL_HASH))
-                        edges.add(edge);
-            }
-
-            String data = vertex.get(0).extraDataDigest();
-            Collections.reverse(edges);
-
-            tails.add(createVertex(data, edges.toArray(new String[edges.size()])));
-
-        }
-
-        return tails.toArray(new String[tails.size()]);
-
     }
 
     /**
@@ -349,7 +238,7 @@ public class Graph {
      */
     public List<String> getReferencingVertices(String vertex) {
         List<String> ret = new ArrayList<>();
-        for(String tail: tails)
+        for(String tail: virtualTails)
             if(isReferencing(tail, vertex))
                 ret.add(tail);
         return ret;
@@ -384,11 +273,17 @@ public class Graph {
     }
 
     /**
-     * Returns all vertices
-     * @return all tails of the vertices
+     * Maps the virtual tail with the serialized tail
      */
-    public Set<String> getTails() {
-        return tails;
+    public void addSerializedTail(String virtualTail, String serializedTail) {
+        serializedTailsByVirtualTails.put(virtualTail, serializedTail);
+    }
+
+    /**
+     * Returns the serialized tail for a given virtual tail
+     */
+    public String getSerializedTail(String virtualTail, String serializedTail) {
+        return serializedTailsByVirtualTails.get(virtualTail);
     }
 
 }

@@ -12,11 +12,11 @@ public class GetDataHashTest extends GraphTestTemplate{
         String dataHash = "DATA9HASH999999999999999999999999999999999999999999999999999999999999999999999999";
         String firstEdge = "FIRST9EDGE99999999999999999999999999999999999999999999999999999999999999999999999";
 
-        String firstTranscationHash = graph.startVertex(dataHash, firstEdge);
+        String firstTranscationHash = graphModule1.getGraph().startVertex(dataHash, firstEdge);
         String[] edges = VertexGenerator.generateRandomEdges(80);
-        String tail = graph.addEdges(firstTranscationHash, edges);
+        String tail = graphModule1.getGraph().addEdges(firstTranscationHash, edges);
 
-        Assert.assertEquals(dataHash, graph.getData(tail));
+        Assert.assertEquals(dataHash, graphModule1.getGraph().getData(tail));
 
     }
 

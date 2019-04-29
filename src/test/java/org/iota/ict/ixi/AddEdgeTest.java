@@ -14,21 +14,21 @@ public class AddEdgeTest extends GraphTestTemplate {
         String secondEdge = "SECOND9HASH9999999999999999999999999999999999999999999999999999999999999999999999";
         String thirdEdge = "THIRD9HASH99999999999999999999999999999999999999999999999999999999999999999999999";
 
-        String firstTranscationHash = graph.startVertex(dataHash, firstEdge);
-        String secondTranscationHash = graph.addEdge(firstTranscationHash, secondEdge);
-        String thirdTranscationHash = graph.addEdge(secondTranscationHash, thirdEdge);
+        String firstTranscationHash = graphModule1.getGraph().startVertex(dataHash, firstEdge);
+        String secondTranscationHash = graphModule1.getGraph().addEdge(firstTranscationHash, secondEdge);
+        String thirdTranscationHash = graphModule1.getGraph().addEdge(secondTranscationHash, thirdEdge);
 
-        Assert.assertEquals(3, graph.getTransactionsByHash().size());
+        Assert.assertEquals(3, graphModule1.getGraph().getTransactionsByHash().size());
 
-        Transaction thirdTransaction = graph.getTransactionsByHash().get(thirdTranscationHash);
+        Transaction thirdTransaction = graphModule1.getGraph().getTransactionsByHash().get(thirdTranscationHash);
         Assert.assertEquals(thirdEdge, thirdTransaction.branchHash());
         Assert.assertEquals(secondTranscationHash, thirdTransaction.trunkHash());
 
-        Transaction secondTransaction = graph.getTransactionsByHash().get(secondTranscationHash);
+        Transaction secondTransaction = graphModule1.getGraph().getTransactionsByHash().get(secondTranscationHash);
         Assert.assertEquals(secondEdge, secondTransaction.branchHash());
         Assert.assertEquals(firstTranscationHash, secondTransaction.trunkHash());
 
-        Transaction firstTransaction = graph.getTransactionsByHash().get(firstTranscationHash);
+        Transaction firstTransaction = graphModule1.getGraph().getTransactionsByHash().get(firstTranscationHash);
         Assert.assertEquals(firstEdge, firstTransaction.branchHash());
         Assert.assertEquals(dataHash, firstTransaction.trunkHash());
 
@@ -41,11 +41,11 @@ public class AddEdgeTest extends GraphTestTemplate {
         String firstEdge = "FIRST9EDGE99999999999999999999999999999999999999999999999999999999999999999999999";
         String secondEdge = "SECOND9HASH";
 
-        String firstTranscationHash = graph.startVertex(dataHash, firstEdge);
-        String secondTranscationHash = graph.addEdge(firstTranscationHash, secondEdge);
+        String firstTranscationHash = graphModule1.getGraph().startVertex(dataHash, firstEdge);
+        String secondTranscationHash = graphModule1.getGraph().addEdge(firstTranscationHash, secondEdge);
 
         Assert.assertNull(secondTranscationHash);
-        Assert.assertEquals(1, graph.getTransactionsByHash().size());
+        Assert.assertEquals(1, graphModule1.getGraph().getTransactionsByHash().size());
 
     }
 

@@ -3,16 +3,17 @@ package org.iota.ict.ixi;
 import org.iota.ict.eee.call.EEEFunction;
 import org.iota.ict.eee.call.FunctionEnvironment;
 import org.iota.ict.ixi.model.Graph;
+import org.iota.ict.ixi.model.Pair;
 import org.iota.ict.ixi.util.InputValidator;
 import org.iota.ict.model.bundle.Bundle;
+import org.iota.ict.model.bundle.BundleBuilder;
 import org.iota.ict.model.transaction.Transaction;
+import org.iota.ict.model.transaction.TransactionBuilder;
 import org.iota.ict.network.gossip.GossipEvent;
 import org.iota.ict.network.gossip.GossipListener;
+import org.iota.ict.utils.Trytes;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class GraphModule extends IxiModule {
 
@@ -38,7 +39,7 @@ public class GraphModule extends IxiModule {
             public void onReceive(GossipEvent effect) {
                 receivedTransactionsByHash.put(effect.getTransaction().hash, effect.getTransaction());
                 List<Transaction> vertex = completeVertex();
-                graph.deserializeAndStore(vertex);
+                deserializeAndStore(vertex);
             }
         });
 
@@ -286,6 +287,117 @@ public class GraphModule extends IxiModule {
         }
 
         return new ArrayList<>();
+
+    }
+
+    /**
+     * Serializes bundle fragments ready to attach to the Tangle.
+     * @param finalizedVertexPair the bundle fragments mapped with the virtual vertex tail to serialize
+     * @return the bundle ready to attach to the Tangle
+     */
+    public Bundle serialize(Pair<String, List<TransactionBuilder>>... finalizedVertexPair) {
+
+        // put all transactions in a collection
+        List<TransactionBuilder> collection = new ArrayList<>();
+        for (Pair<String, List<TransactionBuilder>> pair : finalizedVertexPair)
+            collection.addAll(pair.value);
+
+        // sort transactions
+        Collections.reverse(collection);
+
+        // build bundle
+        BundleBuilder bundleBuilder = new BundleBuilder();
+        bundleBuilder.append(collection);
+        Bundle bundle = bundleBuilder.build();
+
+        // get bundle transactions
+        List<Transaction> bundleTransactions = bundle.getTransactions();
+
+        // map serialized vertex tail with virtual vertex tail
+
+        for (Pair<String, List<TransactionBuilder>> pair : finalizedVertexPair) {
+
+            // get virtual vertex tail
+            String virtualTail = pair.key;
+
+            // get transaction count
+            int count = pair.value.size();
+
+            // get serialized vertex tail
+            String serializedTail = bundleTransactions.get(0).hash;
+
+            // map serialized vertex tail with virtual vertex tail
+            graph.addSerializedTail(pair.key, serializedTail);
+
+            // skip to next vertex
+            bundleTransactions = bundleTransactions.subList(0, count);
+
+        }
+
+        return bundle;
+
+    }
+
+
+    /**
+     * Deserializes and adds all vertices of a bundle to the graph.
+     * @param bundle the bundle to deserialize
+     * @return to tails of the added vertices
+     */
+    public String[] deserializeAndStore(Bundle bundle) {
+        return deserializeAndStore(bundle.getTransactions());
+    }
+
+    /**
+     * Deserializes and adds all vertices of a bundle fragment to the graph.
+     * @param transactions the bundle fragment to deserialize
+     * @return to tails of the added vertices
+     */
+    public String[] deserializeAndStore(List<Transaction> transactions) {
+
+        // Dissociate vertices from bundle
+        List<List<Transaction>> vertices = new ArrayList<>();
+
+        boolean vertexFragmentStart = false;
+        List<Transaction> vertexFragment = new ArrayList<>();
+        for (Transaction t : transactions) {
+
+            if (InputValidator.hasVertexStartFlagSet(t))
+                vertexFragmentStart = true;
+
+            vertexFragment.add(t);
+
+            if (InputValidator.hasVertexEndFlagSet(t))
+                if (vertexFragmentStart) {
+                    vertices.add(vertexFragment);
+                    vertexFragmentStart = false;
+                    vertexFragment = new ArrayList<>();
+                }
+
+        }
+
+        List<String> tails = new ArrayList<>();
+
+        // Get all edges of found vertices
+        for (List<Transaction> vertex : vertices) {
+
+            List<String> edges = new ArrayList<>();
+            for (Transaction t : vertex) {
+                for (String edge : t.signatureFragments().split("(?<=\\G.{81})"))
+                    if (!edge.equals(Trytes.NULL_HASH))
+                        edges.add(edge);
+            }
+
+            String data = vertex.get(0).extraDataDigest();
+            Collections.reverse(edges);
+
+            String tail = graph.createVertex(data, edges.toArray(new String[edges.size()]));
+            tails.add(tail);
+            graph.addSerializedTail(tail, vertex.get(0).hash);
+
+        }
+
+        return tails.toArray(new String[tails.size()]);
 
     }
 
