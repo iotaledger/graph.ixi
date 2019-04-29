@@ -282,7 +282,7 @@ public class Graph {
     /**
      * Returns the serialized tail for a given virtual tail
      */
-    public String getSerializedTail(String virtualTail, String serializedTail) {
+    public String getSerializedTail(String virtualTail) {
         return serializedTailsByVirtualTails.get(virtualTail);
     }
 

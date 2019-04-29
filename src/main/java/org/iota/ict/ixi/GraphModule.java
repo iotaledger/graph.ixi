@@ -29,6 +29,8 @@ public class GraphModule extends IxiModule {
     private final EEEFunction getNextEdge = new EEEFunction(new FunctionEnvironment("Graph.ixi", "getNextEdge"));
     private final EEEFunction getReferencingVertices = new EEEFunction(new FunctionEnvironment("Graph.ixi", "getReferencingVertices"));
     private final EEEFunction isReferencing = new EEEFunction(new FunctionEnvironment("Graph.ixi", "isReferencing"));
+    private final EEEFunction serializeAndSubmit = new EEEFunction(new FunctionEnvironment("Graph.ixi", "serializeAndSubmit"));
+    private final EEEFunction getSerializedTail = new EEEFunction(new FunctionEnvironment("Graph.ixi", "getSerializedTail"));
 
     public GraphModule(Ixi ixi) {
 
@@ -52,6 +54,8 @@ public class GraphModule extends IxiModule {
         ixi.addListener(getNextEdge);
         ixi.addListener(getReferencingVertices);
         ixi.addListener(isReferencing);
+        ixi.addListener(serializeAndSubmit);
+        ixi.addListener(getSerializedTail);
 
     }
 
@@ -151,6 +155,26 @@ public class GraphModule extends IxiModule {
             }
         }).start();
 
+        new Thread(() -> {
+            while (isRunning()) {
+                try {
+                    processSerializeAndSubmit(serializeAndSubmit.requestQueue.take());
+                } catch (InterruptedException e) {
+                    if(isRunning()) throw new RuntimeException(e);
+                }
+            }
+        }).start();
+
+        new Thread(() -> {
+            while (isRunning()) {
+                try {
+                    processGetSerializedTail(getSerializedTail.requestQueue.take());
+                } catch (InterruptedException e) {
+                    if(isRunning()) throw new RuntimeException(e);
+                }
+            }
+        }).start();
+
         System.out.println("Graph.ixi loaded!");
 
     }
@@ -231,6 +255,20 @@ public class GraphModule extends IxiModule {
         String neighbor = argument.split(";")[1];
         boolean isReferencing = graph.isReferencing(vertex, neighbor);
         String ret = isReferencing + "";
+        request.submitReturn(ixi, ret);
+    }
+
+    public void processSerializeAndSubmit(EEEFunction.Request request) {
+        String virtualTail = request.argument;
+        List<TransactionBuilder> transactionBuilders = graph.finalizeVertex(virtualTail);
+        Bundle bundle = serialize(new Pair(virtualTail, transactionBuilders));
+        submit(bundle);
+        request.submitReturn(ixi, bundle.getHead().hash);
+    }
+
+    public void processGetSerializedTail(EEEFunction.Request request) {
+        String virtualTail = request.argument;
+        String ret = graph.getSerializedTail(virtualTail);
         request.submitReturn(ixi, ret);
     }
 
