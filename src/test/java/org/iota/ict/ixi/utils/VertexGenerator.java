@@ -1,11 +1,6 @@
 package org.iota.ict.ixi.utils;
 
-import org.iota.ict.ixi.model.Graph;
-import org.iota.ict.model.transaction.TransactionBuilder;
-
 import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.List;
 
 public class VertexGenerator {
 
@@ -17,22 +12,6 @@ public class VertexGenerator {
         for( int i = 0; i < 81; i++ )
             sb.append( alphabet.charAt( r.nextInt(alphabet.length()) ) );
         return sb.toString();
-    }
-
-    public static List<TransactionBuilder> generateRandomVertex(int edges) {
-
-        List<TransactionBuilder> ret = new ArrayList<>();
-
-        if(edges <= 0)
-            return ret;
-
-        String[] e = generateRandomEdges(edges);
-
-        Graph graph = new Graph();
-        String tail = graph.createVertex(random(), e);
-
-        return graph.finalizeVertex(tail);
-
     }
 
     public static String[] generateRandomEdges(int edges) {

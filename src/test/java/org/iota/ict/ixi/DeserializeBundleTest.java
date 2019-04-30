@@ -27,7 +27,7 @@ public class DeserializeBundleTest extends GraphTestTemplate {
         String secondTranscationHash1 = graphModule1.getGraph().addEdge(firstTranscationHash1, secondEdge1);
         String thirdTranscationHash1 = graphModule1.getGraph().addEdge(secondTranscationHash1, thirdEdge1);
 
-        List<TransactionBuilder> transactionBuilderList1 = graphModule1.getGraph().finalizeVertex(thirdTranscationHash1);
+        List<TransactionBuilder> transactionBuilderList1 = graphModule1.finalizeVertex(thirdTranscationHash1);
 
         // generating bundle
 
@@ -76,7 +76,7 @@ public class DeserializeBundleTest extends GraphTestTemplate {
         String secondTranscationHash1 = graphModule1.getGraph().addEdge(firstTranscationHash1, secondEdge1);
         String thirdTranscationHash1 = graphModule1.getGraph().addEdge(secondTranscationHash1, thirdEdge1);
 
-        List<TransactionBuilder> transactionBuilderList1 = graphModule1.getGraph().finalizeVertex(thirdTranscationHash1);
+        List<TransactionBuilder> transactionBuilderList1 = graphModule1.finalizeVertex(thirdTranscationHash1);
 
         // create second vertex
 
@@ -89,7 +89,7 @@ public class DeserializeBundleTest extends GraphTestTemplate {
         String secondTranscationHash2 = graphModule1.getGraph().addEdge(firstTranscationHash2, secondEdge2);
         String thirdTranscationHash2 = graphModule1.getGraph().addEdge(secondTranscationHash2, thirdEdge2);
 
-        List<TransactionBuilder> transactionBuilderList2 = graphModule1.getGraph().finalizeVertex(thirdTranscationHash2);
+        List<TransactionBuilder> transactionBuilderList2 = graphModule1.finalizeVertex(thirdTranscationHash2);
 
         // generating bundle from both vertices
 

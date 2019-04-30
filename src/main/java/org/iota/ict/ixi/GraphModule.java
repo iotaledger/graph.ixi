@@ -260,7 +260,7 @@ public class GraphModule extends IxiModule {
 
     public void processSerializeAndSubmit(EEEFunction.Request request) {
         String virtualTail = request.argument;
-        List<TransactionBuilder> transactionBuilders = graph.finalizeVertex(virtualTail);
+        List<TransactionBuilder> transactionBuilders = finalizeVertex(virtualTail);
         Bundle bundle = serialize(new Pair(virtualTail, transactionBuilders));
         submit(bundle);
         request.submitReturn(ixi, bundle.getHead().hash);
@@ -287,6 +287,73 @@ public class GraphModule extends IxiModule {
     public void submit(Bundle bundle) {
         for(Transaction transaction: bundle.getTransactions())
             ixi.submit(transaction);
+    }
+
+    /**
+     * Finalizes a vertex ready to put into a bundle.
+     * @param currentVertexTail the vertex tail to be finalized
+     * @return the bundle fragment ready to put into a bundle
+     */
+    public List<TransactionBuilder> finalizeVertex(String currentVertexTail) {
+
+        if(!InputValidator.isValidHash(currentVertexTail))
+            return null;
+
+        List<String> edges = new LinkedList<>();
+
+        while(true) {
+
+            Transaction t = graph.getTransactionsByHash().get(currentVertexTail);
+
+            if(t == null)
+                break;
+
+            if(Trytes.toTrits(t.tag())[1] == 1)
+                break;
+
+            String edge = t.branchHash();
+            edges.add(edge);
+
+            currentVertexTail = t.trunkHash();
+
+        }
+
+        Transaction head = graph.getTransactionsByHash().get(currentVertexTail);
+        String data = head.trunkHash();
+        String firstEdge = head.branchHash();
+        edges.add(firstEdge);
+
+        List<TransactionBuilder> transactions = new ArrayList<>();
+
+        TransactionBuilder t = new TransactionBuilder();
+        t.tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 0, 0, 1 }), Transaction.Field.TAG.tryteLength);
+        t.extraDataDigest = data;
+        t.signatureFragments = "";
+
+        for(String edge: edges) {
+
+            if(t.signatureFragments.length() < 27 * 81)
+                t.signatureFragments += edge;
+            else {
+                transactions.add(t);
+                t = new TransactionBuilder();
+                t.signatureFragments = edge;
+            }
+
+        }
+
+        // fill last signature fragment
+        t.signatureFragments = Trytes.padRight(t.signatureFragments, Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
+
+        // if first transaction == last transaction
+        if(Trytes.toTrits(t.tag)[2] == 1)
+            t.tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 0, 1, 1 }), Transaction.Field.TAG.tryteLength);
+        else
+            t.tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 0, 1, 0 }), Transaction.Field.TAG.tryteLength);
+
+        transactions.add(t);
+
+        return transactions;
     }
 
     /**

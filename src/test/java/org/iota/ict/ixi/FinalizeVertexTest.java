@@ -23,7 +23,7 @@ public class FinalizeVertexTest extends GraphTestTemplate {
         String secondTranscationHash = graphModule1.getGraph().addEdge(firstTranscationHash, secondEdge);
         String thirdTranscationHash = graphModule1.getGraph().addEdge(secondTranscationHash, thirdEdge);
 
-        List<TransactionBuilder> transactionBuilderList = graphModule1.getGraph().finalizeVertex(thirdTranscationHash);
+        List<TransactionBuilder> transactionBuilderList = graphModule1.finalizeVertex(thirdTranscationHash);
         TransactionBuilder b = transactionBuilderList.get(0);
 
         Assert.assertEquals(b.extraDataDigest, dataHash);
@@ -47,7 +47,7 @@ public class FinalizeVertexTest extends GraphTestTemplate {
         String lastEdge = "LAST9HASH999999999999999999999999999999999999999999999999999999999999999999999999";
         String tail = graphModule1.getGraph().addEdge(currentTail, lastEdge);
 
-        List<TransactionBuilder> transactionBuilderList = graphModule1.getGraph().finalizeVertex(tail);
+        List<TransactionBuilder> transactionBuilderList = graphModule1.finalizeVertex(tail);
 
         TransactionBuilder firstTransaction = transactionBuilderList.get(0);
         TransactionBuilder secondTransaction = transactionBuilderList.get(1);

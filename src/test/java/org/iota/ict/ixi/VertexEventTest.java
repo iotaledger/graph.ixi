@@ -28,7 +28,7 @@ public class VertexEventTest extends GraphTestTemplate {
         String lastEdge = "LAST9HASH999999999999999999999999999999999999999999999999999999999999999999999999";
         String tail = graphModule2.getGraph().addEdge(currentTail, lastEdge);
 
-        List<TransactionBuilder> transactionBuilderList = graphModule2.getGraph().finalizeVertex(tail);
+        List<TransactionBuilder> transactionBuilderList = graphModule2.finalizeVertex(tail);
         Bundle bundle = graphModule2.serialize(new Pair<>(tail, transactionBuilderList));
 
         // send vertex from Ict2 to Ict1
@@ -78,8 +78,8 @@ public class VertexEventTest extends GraphTestTemplate {
         String lastEdge2 = "ANOTHER9LAST9HASH9999999999999999999999999999999999999999999999999999999999999999";
         String tail2 = graphModule2.getGraph().addEdge(currentTail2, lastEdge2);
 
-        List<TransactionBuilder> transactionBuilderList1 = graphModule2.getGraph().finalizeVertex(tail1);
-        List<TransactionBuilder> transactionBuilderList2 = graphModule2.getGraph().finalizeVertex(tail2);
+        List<TransactionBuilder> transactionBuilderList1 = graphModule2.finalizeVertex(tail1);
+        List<TransactionBuilder> transactionBuilderList2 = graphModule2.finalizeVertex(tail2);
 
         Bundle bundle = graphModule2.serialize(new Pair(tail1, transactionBuilderList1), new Pair(tail2, transactionBuilderList2));
 
