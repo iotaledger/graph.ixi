@@ -30,6 +30,7 @@ public class GraphModule extends IxiModule {
     private final EEEFunction getReferencingVertices = new EEEFunction(new FunctionEnvironment("Graph.ixi", "getReferencingVertices"));
     private final EEEFunction isReferencing = new EEEFunction(new FunctionEnvironment("Graph.ixi", "isReferencing"));
     private final EEEFunction serializeAndSubmit = new EEEFunction(new FunctionEnvironment("Graph.ixi", "serializeAndSubmit"));
+    private final EEEFunction serializeAndSubmitToCustomTips = new EEEFunction(new FunctionEnvironment("Graph.ixi", "serializeAndSubmitToCustomTips"));
     private final EEEFunction getSerializedTail = new EEEFunction(new FunctionEnvironment("Graph.ixi", "getSerializedTail"));
 
     public GraphModule(Ixi ixi) {
@@ -56,6 +57,7 @@ public class GraphModule extends IxiModule {
         ixi.addListener(isReferencing);
         ixi.addListener(serializeAndSubmit);
         ixi.addListener(getSerializedTail);
+        ixi.addListener(serializeAndSubmitToCustomTips);
 
     }
 
@@ -168,6 +170,16 @@ public class GraphModule extends IxiModule {
         new Thread(() -> {
             while (isRunning()) {
                 try {
+                    processSerializeAndSubmitToCustomTips(serializeAndSubmitToCustomTips.requestQueue.take());
+                } catch (InterruptedException e) {
+                    if(isRunning()) throw new RuntimeException(e);
+                }
+            }
+        }).start();
+
+        new Thread(() -> {
+            while (isRunning()) {
+                try {
                     processGetSerializedTail(getSerializedTail.requestQueue.take());
                 } catch (InterruptedException e) {
                     if(isRunning()) throw new RuntimeException(e);
@@ -266,6 +278,37 @@ public class GraphModule extends IxiModule {
         request.submitReturn(ixi, bundle.getHead().hash);
     }
 
+    public void processSerializeAndSubmitToCustomTips(EEEFunction.Request request) {
+
+        String[] arguments = request.argument.split(";");
+        String virtualTail = arguments[0];
+        String trunkTip = arguments[1];
+        String branchTip = arguments[2];
+
+        List<TransactionBuilder> transactionBuilders = finalizeVertex(virtualTail);
+        Collections.reverse(transactionBuilders);
+
+        for(int i = 0; i < transactionBuilders.size(); i++) {
+
+            TransactionBuilder builder = transactionBuilders.get(i);
+
+            if(i != transactionBuilders.size() - 1)
+                builder.branchHash = trunkTip;
+            else {
+                builder.branchHash = branchTip;
+                builder.trunkHash = trunkTip;
+            }
+
+        }
+
+        Collections.reverse(transactionBuilders);
+
+        Bundle bundle = serialize(new Pair(virtualTail, transactionBuilders));
+        submit(bundle);
+        request.submitReturn(ixi, bundle.getHead().hash);
+    }
+
+
     public void processGetSerializedTail(EEEFunction.Request request) {
         String virtualTail = request.argument;
         String ret = graph.getSerializedTail(virtualTail);
@@ -352,6 +395,11 @@ public class GraphModule extends IxiModule {
             t.tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 0, 1, 0 }), Transaction.Field.TAG.tryteLength);
 
         transactions.add(t);
+
+        for(TransactionBuilder transactionBuilder: transactions) {
+            transactionBuilder.attachmentTimestampLowerBound = System.currentTimeMillis();
+            transactionBuilder.attachmentTimestampUpperBound = System.currentTimeMillis();
+        }
 
         return transactions;
     }
