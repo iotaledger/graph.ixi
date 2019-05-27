@@ -13,10 +13,7 @@ import org.iota.ict.network.gossip.GossipEvent;
 import org.iota.ict.network.gossip.GossipPreprocessor;
 import org.iota.ict.utils.Trytes;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 public class GraphModule extends IxiModule {
 
@@ -66,18 +63,32 @@ public class GraphModule extends IxiModule {
 
         new Thread(() -> {
             try {
+
+                LinkedList<String> headsToProcess = new LinkedList<>();
+
                 while(isRunning()){
 
                     GossipEvent effect = gossipPreprocessor.takeEffect();
                     gossipPreprocessor.passOn(effect);
-                    Transaction head = effect.getTransaction();
 
-                    new Thread(() -> {
+                    if(effect.isOwnTransaction())
+                        continue;
+
+                    Transaction transaction = effect.getTransaction();
+
+                    if(transaction.isBundleHead)
+                        headsToProcess.add(transaction.hash);
+
+                    for(String x: new ArrayList<>(headsToProcess)) {
+
+                        Transaction head = ixi.findTransactionByHash(x);
                         List<Transaction> bundle = completeBundle(head);
                         if(bundle.size() == 0)
-                            return;
+                            continue;
                         deserializeAndStore(bundle);
-                    }).start();
+                        headsToProcess.remove(x);
+
+                    }
 
                 }
             } catch (InterruptedException e){
@@ -205,7 +216,7 @@ public class GraphModule extends IxiModule {
             }
         }).start();
 
-        System.out.println("Graph.ixi loaded!");
+        System.out.println("Graph.ixi successfully started!");
 
     }
 
@@ -428,8 +439,9 @@ public class GraphModule extends IxiModule {
      */
     public List<Transaction> completeBundle(Transaction head) {
 
-        if(!head.isBundleHead)
+        if(!head.isBundleHead) {
             return new ArrayList<>();
+        }
 
         List<Transaction> bundle = new ArrayList<>();
         bundle.add(head);

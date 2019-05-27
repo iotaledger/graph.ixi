@@ -82,8 +82,8 @@ public class VertexEventTest extends GraphTestTemplate {
         List<TransactionBuilder> transactionBuilderList = graphModule2.finalizeVertex(currentTail);
         Bundle bundle = graphModule2.serialize(new Pair<>(currentTail, transactionBuilderList));
 
-        System.out.println(bundle.getHead().hash);
-        System.out.println(bundle.getTail().hash);
+        Assert.assertEquals(0, graphModule1.getGraph().getTransactionsByHash().size());
+        Assert.assertEquals(137, graphModule2.getGraph().getTransactionsByHash().size());
 
         // send vertex from Ict2 to Ict1
         for(Transaction transaction: bundle.getTransactions())
@@ -91,15 +91,15 @@ public class VertexEventTest extends GraphTestTemplate {
 
         // wait few seconds to avoid premature termination of this test
         try {
-            Thread.sleep(3000);
+                    Thread.sleep(3000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
 
+        Assert.assertEquals(137, graphModule1.getGraph().getTransactionsByHash().size());
+
         List<Transaction> vertices = new ArrayList<>(graphModule1.getGraph().getTransactionsByHash().values());
-
         Assert.assertEquals(137, vertices.size());
-
         Assert.assertEquals(dataHash, vertices.get(0).trunkHash());
         Assert.assertEquals(firstEdge, vertices.get(0).branchHash());
         Assert.assertEquals(lastEdge, vertices.get(136).branchHash());
