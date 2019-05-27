@@ -10,7 +10,7 @@ import org.iota.ict.model.bundle.BundleBuilder;
 import org.iota.ict.model.transaction.Transaction;
 import org.iota.ict.model.transaction.TransactionBuilder;
 import org.iota.ict.network.gossip.GossipEvent;
-import org.iota.ict.network.gossip.GossipListener;
+import org.iota.ict.network.gossip.GossipPreprocessor;
 import org.iota.ict.utils.Trytes;
 
 import java.util.*;
@@ -33,18 +33,11 @@ public class GraphModule extends IxiModule {
     private final EEEFunction serializeAndSubmitToCustomTips = new EEEFunction(new FunctionEnvironment("Graph.ixi", "serializeAndSubmitToCustomTips"));
     private final EEEFunction getSerializedTail = new EEEFunction(new FunctionEnvironment("Graph.ixi", "getSerializedTail"));
 
+    private GossipPreprocessor gossipPreprocessor = new GossipPreprocessor(ixi, -4000);
+
     public GraphModule(Ixi ixi) {
 
         super(ixi);
-
-        ixi.addListener(new GossipListener.Implementation() {
-            @Override
-            public void onReceive(GossipEvent effect) {
-                receivedTransactionsByHash.put(effect.getTransaction().hash, effect.getTransaction());
-                List<Transaction> vertex = completeVertex();
-                deserializeAndStore(vertex);
-            }
-        });
 
         ixi.addListener(createVertex);
         ixi.addListener(startVertex);
@@ -59,6 +52,8 @@ public class GraphModule extends IxiModule {
         ixi.addListener(getSerializedTail);
         ixi.addListener(serializeAndSubmitToCustomTips);
 
+        ixi.addListener(gossipPreprocessor);
+
     }
 
     /**
@@ -66,6 +61,20 @@ public class GraphModule extends IxiModule {
      */
     @Override
     public void run() {
+
+        new Thread(() -> {
+            try {
+                while(isRunning()){
+                    GossipEvent effect = gossipPreprocessor.takeEffect();
+                    receivedTransactionsByHash.put(effect.getTransaction().hash, effect.getTransaction());
+                    List<Transaction> vertex = completeVertex();
+                    deserializeAndStore(vertex);
+                    gossipPreprocessor.passOn(effect);
+                }
+            } catch (InterruptedException e){
+                e.printStackTrace();
+            }
+        }).start();
 
         new Thread(() -> {
             while (isRunning()) {

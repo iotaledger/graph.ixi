@@ -14,6 +14,31 @@ import java.util.List;
 public class VertexEventTest extends GraphTestTemplate {
 
     @Test
+    public void receiveSingleTransactionTest() {
+
+        TransactionBuilder b = new TransactionBuilder();
+        b.isBundleHead = true;
+        b.isBundleTail = true;
+        b.attachmentTimestampLowerBound = System.currentTimeMillis();
+        b.attachmentTimestampUpperBound = System.currentTimeMillis();
+        b.attachmentTimestamp = System.currentTimeMillis();
+        Transaction t = b.buildWhileUpdatingTimestamp();
+
+        ict2.submit(t);
+
+        // wait few seconds to avoid premature termination of this test
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        Transaction result = ict1.getTangle().findTransactionByHash(t.hash);
+        Assert.assertNotNull(result);
+
+    }
+
+    @Test
     public void receiveSingleVertexTest() {
 
         // create vertex
@@ -34,6 +59,7 @@ public class VertexEventTest extends GraphTestTemplate {
         // send vertex from Ict2 to Ict1
         for(Transaction transaction: bundle.getTransactions())
             ict2.submit(transaction);
+
 
         // wait few seconds to avoid premature termination of this test
         try {

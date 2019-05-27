@@ -15,19 +15,20 @@ public abstract class GraphTestTemplate {
     protected static GraphModule graphModule2;
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
         EditableProperties properties1 = new EditableProperties().host("localhost").port(1337).minForwardDelay(0).maxForwardDelay(10).guiEnabled(false);
         EditableProperties properties2 = new EditableProperties().host("localhost").port(1338).minForwardDelay(0).maxForwardDelay(10).guiEnabled(false);
+
         ict1 = new Ict(properties1.toFinal());
         ict2 = new Ict(properties2.toFinal());
 
         ict1.getModuleHolder().initAllModules();
+        graphModule1 = (GraphModule) ict1.getModuleHolder().loadVirtualModule(GraphModule.class, "Graph.ixi");
         ict1.getModuleHolder().startAllModules();
-        ict2.getModuleHolder().initAllModules();
-        ict2.getModuleHolder().startAllModules();
 
-        graphModule1 = new GraphModule(ict1);
-        graphModule2 = new GraphModule(ict1);
+        ict2.getModuleHolder().initAllModules();
+        graphModule2 = (GraphModule) ict2.getModuleHolder().loadVirtualModule(GraphModule.class, "Graph.ixi");
+        ict2.getModuleHolder().startAllModules();
 
         addNeighborToIct(ict1,ict2);
         addNeighborToIct(ict2,ict1);
