@@ -13,12 +13,14 @@ import org.iota.ict.network.gossip.GossipEvent;
 import org.iota.ict.network.gossip.GossipPreprocessor;
 import org.iota.ict.utils.Trytes;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 
 public class GraphModule extends IxiModule {
 
     private Graph graph = new Graph();
-    private Map<String, Transaction> receivedTransactionsByHash = new HashMap<>();
 
     private final EEEFunction createVertex = new EEEFunction(new FunctionEnvironment("Graph.ixi", "createVertex"));
     private final EEEFunction startVertex = new EEEFunction(new FunctionEnvironment("Graph.ixi", "startVertex"));
@@ -65,11 +67,18 @@ public class GraphModule extends IxiModule {
         new Thread(() -> {
             try {
                 while(isRunning()){
+
                     GossipEvent effect = gossipPreprocessor.takeEffect();
-                    receivedTransactionsByHash.put(effect.getTransaction().hash, effect.getTransaction());
-                    List<Transaction> vertex = completeVertex();
-                    deserializeAndStore(vertex);
                     gossipPreprocessor.passOn(effect);
+                    Transaction head = effect.getTransaction();
+
+                    new Thread(() -> {
+                        List<Transaction> bundle = completeBundle(head);
+                        if(bundle.size() == 0)
+                            return;
+                        deserializeAndStore(bundle);
+                    }).start();
+
                 }
             } catch (InterruptedException e){
                 e.printStackTrace();
@@ -414,41 +423,34 @@ public class GraphModule extends IxiModule {
     }
 
     /**
-     * Tries to complete received vertex by its tail transaction.
-     * @return the completed vertex bundle fragment.
+     * Tries to complete a bundle by a given transaction.
+     * @return the completed bundle.
      */
-    private List<Transaction> completeVertex() {
+    public List<Transaction> completeBundle(Transaction head) {
 
-        for(Transaction tail: new ArrayList<>(receivedTransactionsByHash.values())) {
+        if(!head.isBundleHead)
+            return new ArrayList<>();
 
-            if(InputValidator.hasVertexStartFlagSet(tail) || InputValidator.hasVertexStartAndEndFlagSet(tail)) {
+        List<Transaction> bundle = new ArrayList<>();
+        bundle.add(head);
 
-                List<Transaction> ret = new ArrayList<>();
-                ret.add(tail);
-                String currentTail = tail.trunkHash();
+        String currentHead = head.trunkHash();
 
-                while(true) {
+        while(true) {
 
-                    Transaction next = receivedTransactionsByHash.get(currentTail);
+            Transaction next = ixi.findTransactionByHash(currentHead);
 
-                    if(next == null)
-                        return new ArrayList<>();
+            if(next == null)
+                return new ArrayList<>();
 
-                    ret.add(next);
+            bundle.add(next);
 
-                    if(InputValidator.hasVertexEndFlagSet(next)) {
-                        for(Transaction t: ret)
-                            receivedTransactionsByHash.remove(t.hash);
-                        return ret;
-                    }
+            if(next.isBundleTail)
+                return bundle;
 
-                    currentTail = next.trunkHash();
+            currentHead = next.trunkHash();
 
-                }
-            }
         }
-
-        return new ArrayList<>();
 
     }
 
@@ -476,7 +478,6 @@ public class GraphModule extends IxiModule {
         List<Transaction> bundleTransactions = bundle.getTransactions();
 
         // map serialized vertex tail with virtual vertex tail
-
         for (Pair<String, List<TransactionBuilder>> pair : finalizedVertexPair) {
 
             // get virtual vertex tail
@@ -488,11 +489,11 @@ public class GraphModule extends IxiModule {
             // get serialized vertex tail
             String serializedTail = bundleTransactions.get(0).hash;
 
-            // map serialized vertex tail with virtual vertex tail
-            graph.addSerializedTail(pair.key, serializedTail);
+            // map virtual tail with serialized tail
+            graph.addSerializedTail(virtualTail, serializedTail);
 
             // skip to next vertex
-            bundleTransactions = bundleTransactions.subList(0, count);
+            bundleTransactions = bundleTransactions.subList(count, bundleTransactions.size());
 
         }
 
@@ -512,22 +513,23 @@ public class GraphModule extends IxiModule {
 
     /**
      * Deserializes and adds all vertices of a bundle fragment to the graph.
-     * @param transactions the bundle fragment to deserialize
+     * @param bundle the bundle to deserialize
      * @return to tails of the added vertices
      */
-    public String[] deserializeAndStore(List<Transaction> transactions) {
+    public String[] deserializeAndStore(List<Transaction> bundle) {
 
         // Dissociate vertices from bundle
         List<List<Transaction>> vertices = new ArrayList<>();
 
         boolean vertexFragmentStart = false;
         List<Transaction> vertexFragment = new ArrayList<>();
-        for (Transaction t : transactions) {
+        for (Transaction t : bundle) {
 
             if (InputValidator.hasVertexStartFlagSet(t))
                 vertexFragmentStart = true;
 
-            vertexFragment.add(t);
+            if(vertexFragmentStart)
+                vertexFragment.add(t);
 
             if (InputValidator.hasVertexEndFlagSet(t))
                 if (vertexFragmentStart) {

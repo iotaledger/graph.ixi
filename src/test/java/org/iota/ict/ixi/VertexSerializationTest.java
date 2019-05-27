@@ -9,7 +9,6 @@ import org.iota.ict.utils.Trytes;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class VertexSerializationTest extends GraphTestTemplate {
@@ -20,17 +19,17 @@ public class VertexSerializationTest extends GraphTestTemplate {
         String dataHash = "DATA9HASH999999999999999999999999999999999999999999999999999999999999999999999999";
         String firstEdge = "FIRST9EDGE99999999999999999999999999999999999999999999999999999999999999999999999";
 
-        String firstTranscationHash = graphModule1.getGraph().startVertex(dataHash, firstEdge);
+        String currentTail = graphModule1.getGraph().startVertex(dataHash, firstEdge);
         String[] edges = VertexGenerator.generateRandomEdges(80);
 
-        String currentTail = graphModule1.getGraph().addEdges(firstTranscationHash, edges);
+        currentTail = graphModule1.getGraph().addEdges(currentTail, edges);
 
         String lastEdge = "LAST9HASH999999999999999999999999999999999999999999999999999999999999999999999999";
-        String tail = graphModule1.getGraph().addEdge(currentTail, lastEdge);
+        currentTail = graphModule1.getGraph().addEdge(currentTail, lastEdge);
 
-        List<TransactionBuilder> transactionBuilderList = graphModule1.finalizeVertex(tail);
+        List<TransactionBuilder> transactionBuilderList = graphModule1.finalizeVertex(currentTail);
 
-        Bundle bundle = graphModule1.serialize(new Pair<>(tail, transactionBuilderList));
+        Bundle bundle = graphModule1.serialize(new Pair<>(currentTail, transactionBuilderList));
 
         Transaction firstTransaction = bundle.getTransactions().get(0);
         Transaction secondTransaction = bundle.getTransactions().get(1);
@@ -56,6 +55,8 @@ public class VertexSerializationTest extends GraphTestTemplate {
         Assert.assertEquals(1, Trytes.toTrits(lastTransaction.tag())[1]); // end flag expected
         Assert.assertEquals(0, Trytes.toTrits(lastTransaction.tag())[0]);
 
+        Assert.assertEquals(firstTransaction.hash, graphModule1.getGraph().getSerializedTail(currentTail));
+
     }
 
     @Test
@@ -65,41 +66,30 @@ public class VertexSerializationTest extends GraphTestTemplate {
         String dataHash1 = "DATA9HASH999999999999999999999999999999999999999999999999999999999999999999999999";
         String firstEdge1 = "FIRST9EDGE99999999999999999999999999999999999999999999999999999999999999999999999";
 
-        String firstTranscationHash1 = graphModule1.getGraph().startVertex(dataHash1, firstEdge1);
+        String currentTail1 = graphModule1.getGraph().startVertex(dataHash1, firstEdge1);
         String[] edges1 = VertexGenerator.generateRandomEdges(80);
 
-        String currentTail1 = graphModule1.getGraph().addEdges(firstTranscationHash1, edges1);
+        currentTail1 = graphModule1.getGraph().addEdges(currentTail1, edges1);
 
         String lastEdge1 = "LAST9HASH999999999999999999999999999999999999999999999999999999999999999999999999";
-        String tail1 = graphModule1.getGraph().addEdge(currentTail1, lastEdge1);
+        currentTail1 = graphModule1.getGraph().addEdge(currentTail1, lastEdge1);
 
         // create second vertex
         String dataHash2 = "ANOTHER9DATA9HASH9999999999999999999999999999999999999999999999999999999999999999";
         String firstEdge2 = "ANOTHER9FIRST9EDGE999999999999999999999999999999999999999999999999999999999999999";
 
-        String firstTranscationHash2 = graphModule1.getGraph().startVertex(dataHash2, firstEdge2);
+        String currentTail2 = graphModule1.getGraph().startVertex(dataHash2, firstEdge2);
         String[] edges2 = VertexGenerator.generateRandomEdges(80);
 
-        String currentTail2 = graphModule1.getGraph().addEdges(firstTranscationHash2, edges2);
+        currentTail2 = graphModule1.getGraph().addEdges(currentTail2, edges2);
 
         String lastEdge2 = "ANOTHER9LAST9HASH9999999999999999999999999999999999999999999999999999999999999999";
-        String tail2 = graphModule1.getGraph().addEdge(currentTail2, lastEdge2);
+        currentTail2 = graphModule1.getGraph().addEdge(currentTail2, lastEdge2);
 
-        List<TransactionBuilder> transactionBuilderList1 = graphModule1.finalizeVertex(tail1);
-        List<TransactionBuilder> transactionBuilderList2 = graphModule1.finalizeVertex(tail2);
+        List<TransactionBuilder> transactionBuilderList1 = graphModule1.finalizeVertex(currentTail1);
+        List<TransactionBuilder> transactionBuilderList2 = graphModule1.finalizeVertex(currentTail2);
 
-        Bundle bundle = graphModule1.serialize(new Pair(tail1, transactionBuilderList1), new Pair(tail2, transactionBuilderList2));
-
-        for(Transaction t: bundle.getTransactions()) {
-
-            System.out.println("HASH: " + t.hash);
-            System.out.println("ExtraData: " + t.extraDataDigest());
-            System.out.println("TRUNK: " + t.trunkHash());
-            System.out.println("BRANCH: " + t.branchHash());
-            System.out.println("SIGNATURE: " + t.signatureFragments());
-            System.out.println();
-
-        }
+        Bundle bundle = graphModule1.serialize(new Pair(currentTail1, transactionBuilderList1), new Pair(currentTail2, transactionBuilderList2));
 
         Transaction transaction1 = bundle.getTransactions().get(0);
         Transaction transaction2 = bundle.getTransactions().get(1);
@@ -151,6 +141,8 @@ public class VertexSerializationTest extends GraphTestTemplate {
         Assert.assertEquals(1, Trytes.toTrits(transaction8.tag())[1]); // end flag expected
         Assert.assertEquals(0, Trytes.toTrits(transaction8.tag())[0]);
 
+        Assert.assertEquals(transaction1.hash, graphModule1.getGraph().getSerializedTail(currentTail1));
+        Assert.assertEquals(transaction5.hash, graphModule1.getGraph().getSerializedTail(currentTail2));
 
     }
 

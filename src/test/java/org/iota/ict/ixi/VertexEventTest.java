@@ -3,6 +3,7 @@ package org.iota.ict.ixi;
 import org.iota.ict.ixi.model.Pair;
 import org.iota.ict.ixi.utils.VertexGenerator;
 import org.iota.ict.model.bundle.Bundle;
+import org.iota.ict.model.bundle.BundleBuilder;
 import org.iota.ict.model.transaction.Transaction;
 import org.iota.ict.model.transaction.TransactionBuilder;
 import org.junit.Assert;
@@ -14,17 +15,37 @@ import java.util.List;
 public class VertexEventTest extends GraphTestTemplate {
 
     @Test
-    public void receiveSingleTransactionTest() {
+    public void completeBundleTest() {
 
-        TransactionBuilder b = new TransactionBuilder();
-        b.isBundleHead = true;
-        b.isBundleTail = true;
-        b.attachmentTimestampLowerBound = System.currentTimeMillis();
-        b.attachmentTimestampUpperBound = System.currentTimeMillis();
-        b.attachmentTimestamp = System.currentTimeMillis();
-        Transaction t = b.buildWhileUpdatingTimestamp();
+        BundleBuilder bundleBuilder = new BundleBuilder();
 
-        ict2.submit(t);
+        TransactionBuilder b1 = new TransactionBuilder();
+        b1.isBundleTail = true;
+        b1.attachmentTimestampLowerBound = System.currentTimeMillis();
+        b1.attachmentTimestampUpperBound = System.currentTimeMillis();
+        b1.attachmentTimestamp = System.currentTimeMillis();
+        bundleBuilder.append(b1);
+
+        TransactionBuilder b2 = new TransactionBuilder();
+        b2.attachmentTimestampLowerBound = System.currentTimeMillis();
+        b2.attachmentTimestampUpperBound = System.currentTimeMillis();
+        b2.attachmentTimestamp = System.currentTimeMillis();
+        bundleBuilder.append(b2);
+
+        TransactionBuilder b3 = new TransactionBuilder();
+        b3.isBundleHead = true;
+        b3.attachmentTimestampLowerBound = System.currentTimeMillis();
+        b3.attachmentTimestampUpperBound = System.currentTimeMillis();
+        b3.attachmentTimestamp = System.currentTimeMillis();
+        bundleBuilder.append(b3);
+
+        List<Transaction> transactions = bundleBuilder.build().getTransactions();
+
+        Assert.assertTrue(transactions.get(0).isBundleHead);
+        Assert.assertTrue(transactions.get(2).isBundleTail);
+
+        for(Transaction t: transactions)
+            ict2.submit(t);
 
         // wait few seconds to avoid premature termination of this test
         try {
@@ -33,8 +54,13 @@ public class VertexEventTest extends GraphTestTemplate {
             e.printStackTrace();
         }
 
-        Transaction result = ict1.getTangle().findTransactionByHash(t.hash);
-        Assert.assertNotNull(result);
+        List<Transaction> firstTry = graphModule1.completeBundle(transactions.get(0));
+        List<Transaction> secondTry = graphModule1.completeBundle(transactions.get(1));
+        List<Transaction> thirdTry = graphModule1.completeBundle(transactions.get(2));
+
+        Assert.assertEquals(3, firstTry.size());
+        Assert.assertEquals(0, secondTry.size());
+        Assert.assertEquals(0, thirdTry.size());
 
     }
 
@@ -45,21 +71,23 @@ public class VertexEventTest extends GraphTestTemplate {
         String dataHash = "DATA9HASH999999999999999999999999999999999999999999999999999999999999999999999999";
         String firstEdge = "FIRST9EDGE99999999999999999999999999999999999999999999999999999999999999999999999";
 
-        String firstTranscationHash = graphModule2.getGraph().startVertex(dataHash, firstEdge);
+        String currentTail = graphModule2.getGraph().startVertex(dataHash, firstEdge);
         String[] edges = VertexGenerator.generateRandomEdges(135);
 
-        String currentTail = graphModule2.getGraph().addEdges(firstTranscationHash, edges);
+        currentTail = graphModule2.getGraph().addEdges(currentTail, edges);
 
         String lastEdge = "LAST9HASH999999999999999999999999999999999999999999999999999999999999999999999999";
-        String tail = graphModule2.getGraph().addEdge(currentTail, lastEdge);
+        currentTail = graphModule2.getGraph().addEdge(currentTail, lastEdge);
 
-        List<TransactionBuilder> transactionBuilderList = graphModule2.finalizeVertex(tail);
-        Bundle bundle = graphModule2.serialize(new Pair<>(tail, transactionBuilderList));
+        List<TransactionBuilder> transactionBuilderList = graphModule2.finalizeVertex(currentTail);
+        Bundle bundle = graphModule2.serialize(new Pair<>(currentTail, transactionBuilderList));
+
+        System.out.println(bundle.getHead().hash);
+        System.out.println(bundle.getTail().hash);
 
         // send vertex from Ict2 to Ict1
         for(Transaction transaction: bundle.getTransactions())
             ict2.submit(transaction);
-
 
         // wait few seconds to avoid premature termination of this test
         try {
@@ -71,6 +99,7 @@ public class VertexEventTest extends GraphTestTemplate {
         List<Transaction> vertices = new ArrayList<>(graphModule1.getGraph().getTransactionsByHash().values());
 
         Assert.assertEquals(137, vertices.size());
+
         Assert.assertEquals(dataHash, vertices.get(0).trunkHash());
         Assert.assertEquals(firstEdge, vertices.get(0).branchHash());
         Assert.assertEquals(lastEdge, vertices.get(136).branchHash());
